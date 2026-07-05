@@ -615,7 +615,7 @@ function FundSummary(props: {
                 {props.loadingIntraday && !props.intraday ? (
                   <div className="skeleton skeleton-chart"></div>
                 ) : (
-                  <IntradayChart data={props.intraday?.items ?? []} />
+                  <IntradayChart data={props.intraday?.items ?? []} date={props.intraday?.date} />
                 )}
                 <HistoryTrendChart data={detail.historyTrend} />
               </>

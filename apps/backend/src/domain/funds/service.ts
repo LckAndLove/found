@@ -18,7 +18,7 @@ export type FundService = {
   getFundDetail(code: string, options?: { includeHoldings?: boolean; includeTrend?: boolean }): Promise<FundDetail>;
   getFundNetValue(code: string, date: string): Promise<FundNetValue>;
   getSmartFundNetValue(code: string, startDate: string, maxDays?: number): Promise<SmartFundNetValue>;
-  getFundIntraday(code: string): Promise<{ code: string; items: Awaited<ReturnType<FundDataClient["getIntraday"]>> }>;
+  getFundIntraday(code: string): Promise<{ code: string; date: string | null; items: Awaited<ReturnType<FundDataClient["getIntraday"]>>["items"] }>;
   getShanghaiIndexDate(): Promise<{ date: string | null }>;
 };
 
@@ -126,9 +126,11 @@ export function createFundService(dataClient: FundDataClient, watchlistRepositor
     },
 
     async getFundIntraday(code) {
+      const result = await dataClient.getIntraday(code);
       return {
         code,
-        items: await dataClient.getIntraday(code)
+        date: result.date,
+        items: result.items
       };
     },
 

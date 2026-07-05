@@ -47,7 +47,7 @@ export type FundDataClient = {
   getHistoryTrend(code: string): Promise<FundHistoryTrend>;
   getNetValue(code: string, date: string): Promise<FundNetValue>;
   getNetValuesInRange(code: string, startDate: string, endDate: string, limit?: number): Promise<FundNetValue[]>;
-  getIntraday(code: string): Promise<IntradayPoint[]>;
+  getIntraday(code: string): Promise<{ date: string | null; items: IntradayPoint[] }>;
   getShanghaiIndexDate(): Promise<string | null>;
 };
 
@@ -195,6 +195,7 @@ export function createFundDataClient(http: UpstreamHttpClient): FundDataClient {
         data?: {
           data?: unknown[];
           yesterdayDwjz?: string | number;
+          date?: string;
         };
       };
 
@@ -206,11 +207,12 @@ export function createFundDataClient(http: UpstreamHttpClient): FundDataClient {
       const result = await http.getJson<UpstreamIntraday>(url);
       const list = Array.isArray(result.data?.data) ? result.data.data : [];
       const yesterdayDwjz = Number(result.data?.yesterdayDwjz);
+      const date = result.data?.date ? String(result.data.date) : null;
       if (result.code !== 0 || !Number.isFinite(yesterdayDwjz) || yesterdayDwjz === 0) {
-        return [];
+        return { date: null, items: [] };
       }
 
-      return list
+      const items = list
         .map((item) => {
           if (!Array.isArray(item)) {
             return null;
@@ -229,6 +231,8 @@ export function createFundDataClient(http: UpstreamHttpClient): FundDataClient {
           };
         })
         .filter((item): item is IntradayPoint => Boolean(item));
+
+      return { date, items };
     },
 
     async getShanghaiIndexDate() {

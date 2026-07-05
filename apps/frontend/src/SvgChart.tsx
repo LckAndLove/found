@@ -30,9 +30,10 @@ interface IntradayPoint {
 
 interface IntradayChartProps {
   data: IntradayPoint[];
+  date?: string | null;
 }
 
-export function IntradayChart({ data }: IntradayChartProps) {
+export function IntradayChart({ data, date }: IntradayChartProps) {
   const [hoveredPoint, setHoveredPoint] = useState<IntradayPoint | null>(null);
   const [tooltipPos, setTooltipPos] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
   const svgRef = useRef<SVGSVGElement | null>(null);
@@ -139,7 +140,7 @@ export function IntradayChart({ data }: IntradayChartProps) {
   return (
     <div className="chart-container">
       <div className="chart-header-row">
-        <h3>分时估值走势 (当日)</h3>
+        <h3>分时估值走势 {date ? `(${date})` : "(当日)"}</h3>
         {hoveredPoint && (
           <div className="chart-hover-info">
             <span className="time">{hoveredPoint.time}</span>

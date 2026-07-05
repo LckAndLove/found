@@ -137,6 +137,7 @@ export async function getFundDetail(code: string) {
 
 export type IntradayResponse = {
   code: string;
+  date: string | null;
   items: Array<{
     time: string;
     value: number;
