@@ -11,7 +11,7 @@ build.on("exit", (code) => {
     process.exit(code ?? 1);
   }
 
-  const electron = spawn("electron", ["."], {
+  const electron = spawn("npm", ["exec", "--", "electron", "."], {
     cwd: new URL("../apps/desktop", import.meta.url),
     env: {
       ...process.env,
