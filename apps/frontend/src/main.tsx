@@ -405,10 +405,8 @@ function App() {
                         <td>
                           <div className="fund-name-cell">
                             <span className="fund-name">{detail?.name ?? item.name ?? "加载中..."}</span>
-                            <div className="fund-code-row">
-                              <span className="fund-code">{item.code}</span>
-                              {isFundSuspended(item.code) && <span className="suspended-badge-sidebar">停申</span>}
-                            </div>
+                            <span className="fund-code">{item.code}</span>
+                            {isFundSuspended(item.code) && <span className="suspended-badge-sidebar">停申</span>}
                           </div>
                         </td>
                         <td style={{ textAlign: "right" }} className="flat font-number">
