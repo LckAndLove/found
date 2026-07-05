@@ -356,6 +356,7 @@ function App() {
                 <thead>
                   <tr>
                     <th style={{ maxWidth: "220px", width: "220px" }}>基金名称 ({watchlist.length})</th>
+                    <th style={{ textAlign: "left" }}>代码</th>
                     <th style={{ textAlign: "right" }}>估算净值</th>
                     <th style={{ textAlign: "right" }}>成本</th>
                     <th style={{ textAlign: "right" }}>持仓份额</th>
@@ -405,10 +406,10 @@ function App() {
                         <td>
                           <div className="fund-name-cell">
                             <span className="fund-name">{detail?.name ?? item.name ?? "加载中..."}</span>
-                            <span className="fund-code">{item.code}</span>
                             {isFundSuspended(item.code) && <span className="suspended-badge-sidebar">停申</span>}
                           </div>
                         </td>
+                        <td className="flat font-number">{item.code}</td>
                         <td style={{ textAlign: "right" }} className="flat font-number">
                           {todayIsTrading ? (detail?.gsz ?? "--") : dwjz.toFixed(4)}
                         </td>
