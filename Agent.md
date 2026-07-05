@@ -46,6 +46,7 @@
 - 前端代码放在 `apps/frontend`，后端代码放在 `apps/backend`，桌面端代码放在 `apps/desktop`。
 - 项目文档放在 `docs`，自动化或辅助脚本放在 `scripts`。
 - 外部参考项目放在 `references`，该目录只作为本地参考资料，不纳入当前仓库提交。
+- 基金数据 API 契约整理在 `docs/fund-api.swagger.json`，后续实现后端基金接口时优先对照该文档。
 
 ## Git 规范
 
@@ -79,5 +80,6 @@
 - 部署方式：当前目标为本地自用 macOS 应用，暂不做远程部署。
 - 目录结构：`apps/backend`、`apps/frontend`、`apps/desktop`、`docs`、`scripts`。
 - 参考资料：`references/fund-baby`，来源为 `https://github.com/zhengshengning/fund-baby`。
+- 基金 API 文档：`docs/fund-api.swagger.json`。
 - 核心模块：后端 API、前端界面、Electron 桌面壳。
 - 用户偏好：中文沟通；提交信息使用简洁规范的中文日志。

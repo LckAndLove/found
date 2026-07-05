@@ -1,0 +1,807 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "3.found 基金数据 API",
+    "version": "0.1.0",
+    "description": "基于 references/fund-baby/app/api/fund.js 整理的基金相关接口契约草稿。当前文档描述本项目后端计划暴露的规范接口，并在 x-upstream-sources 中记录参考仓库使用的第三方数据源。"
+  },
+  "servers": [
+    {
+      "url": "http://127.0.0.1:4317",
+      "description": "本地桌面应用后端"
+    }
+  ],
+  "tags": [
+    {
+      "name": "Funds",
+      "description": "基金搜索、估值、净值、走势和持仓"
+    },
+    {
+      "name": "Market",
+      "description": "市场辅助数据"
+    },
+    {
+      "name": "System",
+      "description": "系统辅助接口"
+    }
+  ],
+  "paths": {
+    "/api/funds/search": {
+      "get": {
+        "tags": [
+          "Funds"
+        ],
+        "summary": "搜索基金",
+        "description": "按基金名称、简称或代码搜索基金。参考仓库通过东方财富基金搜索 JSONP 接口获取结果，并过滤 CATEGORY 为基金的数据。",
+        "operationId": "searchFunds",
+        "x-reference-function": "searchFunds",
+        "x-upstream-sources": [
+          {
+            "name": "东方财富基金搜索",
+            "urlTemplate": "https://fundsuggest.eastmoney.com/FundSearch/api/FundSearchAPI.ashx?m=1&key={keyword}&callback={callback}&_={timestamp}",
+            "transport": "jsonp"
+          }
+        ],
+        "parameters": [
+          {
+            "name": "keyword",
+            "in": "query",
+            "required": true,
+            "description": "搜索关键词，支持基金代码或名称。",
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "example": "110022"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "搜索结果",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "items"
+                  ],
+                  "properties": {
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/FundSearchItem"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "502": {
+            "$ref": "#/components/responses/UpstreamError"
+          }
+        }
+      }
+    },
+    "/api/funds/{code}": {
+      "get": {
+        "tags": [
+          "Funds"
+        ],
+        "summary": "获取基金综合数据",
+        "description": "获取基金实时估值、最新净值、前十大持仓、近 90 日净值走势和昨日涨跌幅。参考仓库以天天基金估值为主，腾讯基金净值补充，东方财富接口补充持仓和历史走势；当估值接口不可用时回退到腾讯基金基础净值。",
+        "operationId": "getFundData",
+        "x-reference-function": "fetchFundData",
+        "x-upstream-sources": [
+          {
+            "name": "天天基金实时估值",
+            "urlTemplate": "https://fundgz.1234567.com.cn/js/{code}.js?rt={timestamp}",
+            "transport": "jsonp",
+            "callback": "jsonpgz"
+          },
+          {
+            "name": "腾讯基金基础净值",
+            "urlTemplate": "https://qt.gtimg.cn/q=jj{code}",
+            "transport": "script"
+          },
+          {
+            "name": "东方财富基金持仓",
+            "urlTemplate": "https://fundf10.eastmoney.com/FundArchivesDatas.aspx?type=jjcc&code={code}&topline=10&year=&month=&_={timestamp}",
+            "transport": "script",
+            "global": "apidata.content"
+          },
+          {
+            "name": "腾讯股票行情",
+            "urlTemplate": "https://qt.gtimg.cn/q={quoteSymbols}",
+            "transport": "script"
+          },
+          {
+            "name": "东方财富历史走势",
+            "urlTemplate": "https://fund.eastmoney.com/pingzhongdata/{code}.js?v={timestamp}",
+            "transport": "script",
+            "global": "Data_netWorthTrend"
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/FundCode"
+          },
+          {
+            "name": "includeHoldings",
+            "in": "query",
+            "required": false,
+            "description": "是否返回前十大持仓。",
+            "schema": {
+              "type": "boolean",
+              "default": true
+            }
+          },
+          {
+            "name": "includeTrend",
+            "in": "query",
+            "required": false,
+            "description": "是否返回近 90 日净值走势。",
+            "schema": {
+              "type": "boolean",
+              "default": true
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "基金综合数据",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FundDetail"
+                }
+              }
+            }
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "502": {
+            "$ref": "#/components/responses/UpstreamError"
+          }
+        }
+      }
+    },
+    "/api/funds/{code}/net-value": {
+      "get": {
+        "tags": [
+          "Funds"
+        ],
+        "summary": "查询指定日期单位净值",
+        "description": "按日期查询基金历史单位净值。参考仓库调用东方财富 F10 历史净值接口，并从返回 HTML 表格中解析指定日期的单位净值。",
+        "operationId": "getFundNetValue",
+        "x-reference-function": "fetchFundNetValue",
+        "x-upstream-sources": [
+          {
+            "name": "东方财富 F10 历史净值",
+            "urlTemplate": "https://fundf10.eastmoney.com/F10DataApi.aspx?type=lsjz&code={code}&page=1&per=1&sdate={date}&edate={date}",
+            "transport": "script",
+            "global": "apidata.content"
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/FundCode"
+          },
+          {
+            "name": "date",
+            "in": "query",
+            "required": true,
+            "description": "查询日期，格式为 YYYY-MM-DD。",
+            "schema": {
+              "type": "string",
+              "format": "date",
+              "example": "2026-07-03"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "指定日期净值；若该日无数据，value 为 null。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FundNetValue"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "502": {
+            "$ref": "#/components/responses/UpstreamError"
+          }
+        }
+      }
+    },
+    "/api/funds/{code}/net-value/next": {
+      "get": {
+        "tags": [
+          "Funds"
+        ],
+        "summary": "从起始日期向后查询最近可用净值",
+        "description": "从 startDate 起最多向后查 30 天，返回第一条可用单位净值。参考仓库用于交易记录中遇到非交易日时自动找最近可用净值。",
+        "operationId": "getSmartFundNetValue",
+        "x-reference-function": "fetchSmartFundNetValue",
+        "x-upstream-sources": [
+          {
+            "name": "东方财富 F10 历史净值",
+            "urlTemplate": "https://fundf10.eastmoney.com/F10DataApi.aspx?type=lsjz&code={code}&page=1&per=1&sdate={date}&edate={date}",
+            "transport": "script",
+            "global": "apidata.content"
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/FundCode"
+          },
+          {
+            "name": "startDate",
+            "in": "query",
+            "required": true,
+            "description": "起始查询日期，格式为 YYYY-MM-DD。",
+            "schema": {
+              "type": "string",
+              "format": "date",
+              "example": "2026-07-01"
+            }
+          },
+          {
+            "name": "maxDays",
+            "in": "query",
+            "required": false,
+            "description": "最多向后查询天数。参考仓库固定为 30 天。",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 60,
+              "default": 30
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "最近可用净值；若未找到，返回 found=false。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SmartFundNetValue"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "502": {
+            "$ref": "#/components/responses/UpstreamError"
+          }
+        }
+      }
+    },
+    "/api/funds/{code}/intraday": {
+      "get": {
+        "tags": [
+          "Funds"
+        ],
+        "summary": "获取基金日内估值走势",
+        "description": "获取基金当天分时估值点，并基于昨日单位净值计算每个点的涨跌幅。参考仓库直接 fetch 腾讯基金分时估值 JSON 接口。",
+        "operationId": "getFundIntradayData",
+        "x-reference-function": "fetchIntradayData",
+        "x-upstream-sources": [
+          {
+            "name": "腾讯基金分时估值",
+            "urlTemplate": "https://web.ifzq.gtimg.cn/fund/newfund/fundSsgz/getSsgz?app=web&symbol=jj{code}&_={timestamp}",
+            "transport": "json"
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/FundCode"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "日内分时估值点。无数据时 items 为空。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "code",
+                    "items"
+                  ],
+                  "properties": {
+                    "code": {
+                      "type": "string",
+                      "example": "110022"
+                    },
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/IntradayPoint"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "502": {
+            "$ref": "#/components/responses/UpstreamError"
+          }
+        }
+      }
+    },
+    "/api/market/shanghai-index/date": {
+      "get": {
+        "tags": [
+          "Market"
+        ],
+        "summary": "获取上证指数行情日期",
+        "description": "获取腾讯行情中上证指数数据携带的日期，参考仓库用于判断交易日或行情日期。",
+        "operationId": "getShanghaiIndexDate",
+        "x-reference-function": "fetchShanghaiIndexDate",
+        "x-upstream-sources": [
+          {
+            "name": "腾讯上证指数行情",
+            "urlTemplate": "https://qt.gtimg.cn/q=sh000001&_t={timestamp}",
+            "transport": "script",
+            "global": "v_sh000001"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "上证指数行情日期。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "date"
+                  ],
+                  "properties": {
+                    "date": {
+                      "type": "string",
+                      "nullable": true,
+                      "description": "格式为 YYYYMMDD；无数据时为 null。",
+                      "example": "20260703"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "502": {
+            "$ref": "#/components/responses/UpstreamError"
+          }
+        }
+      }
+    },
+    "/api/system/releases/latest": {
+      "get": {
+        "tags": [
+          "System"
+        ],
+        "summary": "获取参考项目最新 Release",
+        "description": "参考仓库曾计划调用 GitHub Releases API，但当前代码中已禁用并固定返回 null。本接口只作为参考记录，不建议作为核心基金能力。",
+        "operationId": "getLatestReferenceRelease",
+        "deprecated": true,
+        "x-reference-function": "fetchLatestRelease",
+        "x-upstream-sources": [
+          {
+            "name": "GitHub Releases",
+            "urlTemplate": "https://api.github.com/repos/zhengshengning/fund-baby/releases/latest",
+            "transport": "json",
+            "status": "disabled-in-reference"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "最新 Release 信息；参考仓库当前返回 null。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/ReleaseInfo"
+                    },
+                    {
+                      "type": "object",
+                      "nullable": true
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "parameters": {
+      "FundCode": {
+        "name": "code",
+        "in": "path",
+        "required": true,
+        "description": "6 位基金代码。",
+        "schema": {
+          "type": "string",
+          "pattern": "^\\d{6}$",
+          "example": "110022"
+        }
+      }
+    },
+    "responses": {
+      "BadRequest": {
+        "description": "请求参数错误",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            }
+          }
+        }
+      },
+      "NotFound": {
+        "description": "资源不存在或基金代码无可用数据",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            }
+          }
+        }
+      },
+      "UpstreamError": {
+        "description": "上游数据源请求失败或返回格式异常",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            }
+          }
+        }
+      }
+    },
+    "schemas": {
+      "FundSearchItem": {
+        "type": "object",
+        "description": "东方财富基金搜索结果的规范化结构。",
+        "required": [
+          "code",
+          "name"
+        ],
+        "properties": {
+          "code": {
+            "type": "string",
+            "description": "基金代码，对应参考数据中的 CODE。",
+            "example": "110022"
+          },
+          "name": {
+            "type": "string",
+            "description": "基金名称，对应参考数据中的 NAME。",
+            "example": "易方达消费行业股票"
+          },
+          "shortName": {
+            "type": "string",
+            "nullable": true,
+            "description": "基金简称，对应 SHORTNAME。",
+            "example": "易方达消费"
+          },
+          "type": {
+            "type": "string",
+            "nullable": true,
+            "description": "基金类型，对应 TYPE。",
+            "example": "股票型"
+          },
+          "category": {
+            "type": "string",
+            "nullable": true,
+            "description": "分类编码，对应 CATEGORY。",
+            "example": "700"
+          },
+          "categoryDesc": {
+            "type": "string",
+            "nullable": true,
+            "description": "分类描述，对应 CATEGORYDESC。",
+            "example": "基金"
+          },
+          "raw": {
+            "type": "object",
+            "nullable": true,
+            "description": "上游原始字段，便于后续兼容。",
+            "additionalProperties": true
+          }
+        }
+      },
+      "FundDetail": {
+        "type": "object",
+        "required": [
+          "code",
+          "name",
+          "dwjz",
+          "holdings",
+          "historyTrend"
+        ],
+        "properties": {
+          "code": {
+            "type": "string",
+            "description": "基金代码。",
+            "example": "110022"
+          },
+          "name": {
+            "type": "string",
+            "description": "基金名称。",
+            "example": "易方达消费行业股票"
+          },
+          "dwjz": {
+            "type": "string",
+            "nullable": true,
+            "description": "最新单位净值。参考仓库保留为字符串。",
+            "example": "3.8120"
+          },
+          "gsz": {
+            "type": "string",
+            "nullable": true,
+            "description": "实时估算净值。无估值时为 null。",
+            "example": "3.8456"
+          },
+          "gztime": {
+            "type": "string",
+            "nullable": true,
+            "description": "估值时间。",
+            "example": "2026-07-03 15:00"
+          },
+          "jzrq": {
+            "type": "string",
+            "nullable": true,
+            "description": "净值日期。",
+            "example": "2026-07-03"
+          },
+          "gszzl": {
+            "oneOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "string"
+              }
+            ],
+            "nullable": true,
+            "description": "估算涨跌幅，单位为百分比数值。"
+          },
+          "zzl": {
+            "type": "number",
+            "nullable": true,
+            "description": "最新净值涨跌幅，单位为百分比数值。",
+            "example": 1.23
+          },
+          "noValuation": {
+            "type": "boolean",
+            "description": "是否无实时估值，仅使用净值回退数据。",
+            "default": false
+          },
+          "holdings": {
+            "type": "array",
+            "description": "前十大持仓。",
+            "items": {
+              "$ref": "#/components/schemas/Holding"
+            }
+          },
+          "historyTrend": {
+            "type": "array",
+            "description": "近 90 日净值走势。",
+            "items": {
+              "$ref": "#/components/schemas/TrendPoint"
+            }
+          },
+          "yesterdayChange": {
+            "type": "number",
+            "nullable": true,
+            "description": "历史走势中倒数第二个点的 equityReturn，参考仓库命名为 yesterdayChange。",
+            "example": -0.36
+          }
+        }
+      },
+      "Holding": {
+        "type": "object",
+        "required": [
+          "code",
+          "name",
+          "weight"
+        ],
+        "properties": {
+          "code": {
+            "type": "string",
+            "description": "股票或港股代码。",
+            "example": "600519"
+          },
+          "name": {
+            "type": "string",
+            "description": "证券名称。",
+            "example": "贵州茅台"
+          },
+          "weight": {
+            "type": "string",
+            "description": "占基金净值比例。",
+            "example": "8.12%"
+          },
+          "change": {
+            "type": "number",
+            "nullable": true,
+            "description": "证券实时涨跌幅，来自腾讯股票行情。",
+            "example": 0.58
+          }
+        }
+      },
+      "TrendPoint": {
+        "type": "object",
+        "required": [
+          "x",
+          "y"
+        ],
+        "properties": {
+          "x": {
+            "type": "integer",
+            "format": "int64",
+            "description": "时间戳，来自东方财富 Data_netWorthTrend.x。",
+            "example": 1751587200000
+          },
+          "y": {
+            "type": "number",
+            "description": "单位净值。",
+            "example": 3.812
+          },
+          "equityReturn": {
+            "type": "number",
+            "nullable": true,
+            "description": "日涨跌幅。",
+            "example": -0.42
+          }
+        }
+      },
+      "FundNetValue": {
+        "type": "object",
+        "required": [
+          "code",
+          "date",
+          "value"
+        ],
+        "properties": {
+          "code": {
+            "type": "string",
+            "example": "110022"
+          },
+          "date": {
+            "type": "string",
+            "format": "date",
+            "example": "2026-07-03"
+          },
+          "value": {
+            "type": "number",
+            "nullable": true,
+            "description": "单位净值。无数据时为 null。",
+            "example": 3.812
+          }
+        }
+      },
+      "SmartFundNetValue": {
+        "type": "object",
+        "required": [
+          "code",
+          "startDate",
+          "found"
+        ],
+        "properties": {
+          "code": {
+            "type": "string",
+            "example": "110022"
+          },
+          "startDate": {
+            "type": "string",
+            "format": "date",
+            "example": "2026-07-01"
+          },
+          "found": {
+            "type": "boolean",
+            "example": true
+          },
+          "date": {
+            "type": "string",
+            "format": "date",
+            "nullable": true,
+            "example": "2026-07-02"
+          },
+          "value": {
+            "type": "number",
+            "nullable": true,
+            "example": 3.812
+          }
+        }
+      },
+      "IntradayPoint": {
+        "type": "object",
+        "required": [
+          "time",
+          "value",
+          "growth"
+        ],
+        "properties": {
+          "time": {
+            "type": "string",
+            "description": "分时时间，参考仓库将 0930 格式化为 09:30。",
+            "example": "09:30"
+          },
+          "value": {
+            "type": "number",
+            "description": "分时估值。",
+            "example": 3.8456
+          },
+          "growth": {
+            "type": "string",
+            "description": "基于昨日单位净值计算的涨跌幅百分比字符串。",
+            "example": "0.88"
+          }
+        }
+      },
+      "ReleaseInfo": {
+        "type": "object",
+        "required": [
+          "tagName",
+          "body"
+        ],
+        "properties": {
+          "tagName": {
+            "type": "string",
+            "example": "v1.0.0"
+          },
+          "body": {
+            "type": "string",
+            "example": "Release notes"
+          }
+        }
+      },
+      "ErrorResponse": {
+        "type": "object",
+        "required": [
+          "error"
+        ],
+        "properties": {
+          "error": {
+            "type": "object",
+            "required": [
+              "code",
+              "message"
+            ],
+            "properties": {
+              "code": {
+                "type": "string",
+                "example": "UPSTREAM_ERROR"
+              },
+              "message": {
+                "type": "string",
+                "example": "上游数据源请求失败"
+              },
+              "details": {
+                "type": "object",
+                "nullable": true,
+                "additionalProperties": true
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
