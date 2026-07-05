@@ -355,9 +355,6 @@ function App() {
               <table className="fund-monitor-table">
                 <thead>
                   <tr>
-                    <th style={{ width: "32px", textAlign: "center" }}>
-                      <input type="checkbox" defaultChecked disabled />
-                    </th>
                     <th>基金名称 ({watchlist.length})</th>
                     <th style={{ textAlign: "right" }}>估算净值</th>
                     <th style={{ textAlign: "right" }}>成本</th>
@@ -400,9 +397,6 @@ function App() {
 
                     return (
                       <tr key={item.code}>
-                        <td style={{ textAlign: "center" }}>
-                          <input type="checkbox" defaultChecked disabled />
-                        </td>
                         <td>
                           <div className="fund-name-cell">
                             <span className="fund-name">
