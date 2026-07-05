@@ -304,98 +304,138 @@ function App() {
 
   return (
     <main className="app-shell">
-      <section className="app-card">
+      <div className="dashboard-grid">
+        <section className="app-card">
+          <div className="search-box">
+            <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="搜索基金代码、名称或简拼..." />
+            {query.trim() ? (
+              <div className="results">
+                {searching ? <p>正在搜索...</p> : null}
+                {!searching && searchResults.length === 0 ? <p>未搜到相关基金</p> : null}
+                {searchResults.map((fund) => {
+                  const added = watchlist.some((item) => item.code === fund.code);
+                  return (
+                    <button key={fund.code} onClick={() => void addFund(fund)} disabled={added}>
+                      <span>{fund.name}</span>
+                      <small>{added ? "已添加" : fund.code}</small>
+                    </button>
+                  );
+                })}
+              </div>
+            ) : null}
+          </div>
 
+          {message ? <p className="notice">{message}</p> : null}
+          {error ? <p className="error">{error}</p> : null}
 
-        <div className="search-box">
-          <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="搜索基金代码、名称或简拼..." />
-          {query.trim() ? (
-            <div className="results">
-              {searching ? <p>正在搜索...</p> : null}
-              {!searching && searchResults.length === 0 ? <p>未搜到相关基金</p> : null}
-              {searchResults.map((fund) => {
-                const added = watchlist.some((item) => item.code === fund.code);
+          <div className="content">
+            <aside className="fund-list">
+              {hasHoldings && (
+                <div className="portfolio-card">
+                  <span className="label">资产总值 (估算)</span>
+                  <span className="value">¥ {totalValue.toLocaleString("zh-CN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                  <div className="row">
+                    <div className="row-item">
+                      <small style={{ color: "var(--text-secondary)", fontSize: "0.7rem", fontWeight: "700" }}>今日盈亏</small>
+                      <span className={getRateClass(totalTodayChange)}>
+                        {totalTodayChange > 0 ? "+" : ""}{totalTodayChange.toFixed(2)} 元
+                      </span>
+                    </div>
+                    <div className="row-item" style={{ alignItems: "flex-end" }}>
+                      <small style={{ color: "var(--text-secondary)", fontSize: "0.7rem", fontWeight: "700" }}>累计盈亏</small>
+                      <span className={getRateClass(totalGainLoss)}>
+                        {totalGainLoss > 0 ? "+" : ""}{totalGainLoss.toFixed(2)} 元 ({totalReturnRate > 0 ? "+" : ""}{totalReturnRate.toFixed(2)}%)
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              )}
+              
+              {watchlist.length === 0 ? <p className="empty">您的自选列表为空</p> : null}
+              {watchlist.map((item) => {
+                const detail = details.data[item.code];
+                const rate = todayIsTrading ? (detail?.gszzl ?? detail?.zzl) : detail?.zzl;
+                const rateClass = getRateClass(rate);
                 return (
-                  <button key={fund.code} onClick={() => void addFund(fund)} disabled={added}>
-                    <span>{fund.name}</span>
-                    <small>{added ? "已添加" : fund.code}</small>
+                  <button
+                    className="fund-row"
+                    data-active={selectedCode === item.code ? "true" : "false"}
+                    key={item.code}
+                    onClick={() => {
+                      setSelectedCode(item.code);
+                      setEditingCode(null);
+                    }}
+                  >
+                    <div className="fund-row-name-container">
+                      <span className="fund-row-name-text">{detail?.name ?? item.name ?? item.code}</span>
+                      {isFundSuspended(item.code) && <span className="suspended-badge-sidebar">停申</span>}
+                    </div>
+                    <strong className={rateClass}>{formatRate(rate)}</strong>
                   </button>
                 );
               })}
-            </div>
-          ) : null}
-        </div>
+            </aside>
 
-        {message ? <p className="notice">{message}</p> : null}
-        {error ? <p className="error">{error}</p> : null}
+            <FundSummary
+              code={selectedCode}
+              detail={selectedDetail}
+              intraday={selectedIntraday}
+              loadingIntraday={isSelectedIntradayLoading}
+              fallbackName={selectedItem?.name ?? selectedCode ?? ""}
+              loading={selectedCode ? details.loadingCodes.has(selectedCode) : false}
+              error={selectedCode ? details.errorByCode[selectedCode] : undefined}
+              holdingShares={selectedItem?.holdingShares ?? null}
+              costPrice={selectedItem?.costPrice ?? null}
+              isEditing={selectedCode ? editingCode === selectedCode : false}
+              onStartEdit={selectedCode ? () => setEditingCode(selectedCode) : () => {}}
+              onCancelEdit={() => setEditingCode(null)}
+              onSaveHoldings={selectedCode ? (shares, cost) => saveHoldings(selectedCode, shares, cost) : undefined}
+              onRefresh={selectedCode ? () => { void loadDetail(selectedCode); void loadIntraday(selectedCode); } : undefined}
+              onRemove={selectedCode ? () => void removeFund(selectedCode) : undefined}
+            />
+          </div>
+        </section>
 
-        <div className="content">
-          <aside className="fund-list">
-            {hasHoldings && (
-              <div className="portfolio-card">
-                <span className="label">资产总值 (估算)</span>
-                <span className="value">¥ {totalValue.toLocaleString("zh-CN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-                <div className="row">
-                  <div className="row-item">
-                    <small style={{ color: "var(--text-secondary)", fontSize: "0.7rem", fontWeight: "700" }}>今日盈亏</small>
-                    <span className={getRateClass(totalTodayChange)}>
-                      {totalTodayChange > 0 ? "+" : ""}{totalTodayChange.toFixed(2)} 元
-                    </span>
-                  </div>
-                  <div className="row-item" style={{ alignItems: "flex-end" }}>
-                    <small style={{ color: "var(--text-secondary)", fontSize: "0.7rem", fontWeight: "700" }}>累计盈亏</small>
-                    <span className={getRateClass(totalGainLoss)}>
-                      {totalGainLoss > 0 ? "+" : ""}{totalGainLoss.toFixed(2)} 元 ({totalReturnRate > 0 ? "+" : ""}{totalReturnRate.toFixed(2)}%)
-                    </span>
-                  </div>
-                </div>
-              </div>
-            )}
-            
-            {watchlist.length === 0 ? <p className="empty">您的自选列表为空</p> : null}
-            {watchlist.map((item) => {
-              const detail = details.data[item.code];
-              const rate = todayIsTrading ? (detail?.gszzl ?? detail?.zzl) : detail?.zzl;
-              const rateClass = getRateClass(rate);
-              return (
-                <button
-                  className="fund-row"
-                  data-active={selectedCode === item.code ? "true" : "false"}
-                  key={item.code}
-                  onClick={() => {
-                    setSelectedCode(item.code);
-                    setEditingCode(null);
-                  }}
-                >
-                  <div className="fund-row-name-container">
-                    <span className="fund-row-name-text">{detail?.name ?? item.name ?? item.code}</span>
-                    {isFundSuspended(item.code) && <span className="suspended-badge-sidebar">停申</span>}
-                  </div>
-                  <strong className={rateClass}>{formatRate(rate)}</strong>
-                </button>
-              );
-            })}
-          </aside>
+        <section className="app-card placeholder-cell">
+          <div className="placeholder-content">
+            <span className="placeholder-icon">📊</span>
+            <h3>监视器 02</h3>
+            <p>等待配置监控数据...</p>
+          </div>
+        </section>
 
-          <FundSummary
-            code={selectedCode}
-            detail={selectedDetail}
-            intraday={selectedIntraday}
-            loadingIntraday={isSelectedIntradayLoading}
-            fallbackName={selectedItem?.name ?? selectedCode ?? ""}
-            loading={selectedCode ? details.loadingCodes.has(selectedCode) : false}
-            error={selectedCode ? details.errorByCode[selectedCode] : undefined}
-            holdingShares={selectedItem?.holdingShares ?? null}
-            costPrice={selectedItem?.costPrice ?? null}
-            isEditing={selectedCode ? editingCode === selectedCode : false}
-            onStartEdit={selectedCode ? () => setEditingCode(selectedCode) : () => {}}
-            onCancelEdit={() => setEditingCode(null)}
-            onSaveHoldings={selectedCode ? (shares, cost) => saveHoldings(selectedCode, shares, cost) : undefined}
-            onRefresh={selectedCode ? () => { void loadDetail(selectedCode); void loadIntraday(selectedCode); } : undefined}
-            onRemove={selectedCode ? () => void removeFund(selectedCode) : undefined}
-          />
-        </div>
-      </section>
+        <section className="app-card placeholder-cell">
+          <div className="placeholder-content">
+            <span className="placeholder-icon">📈</span>
+            <h3>监视器 03</h3>
+            <p>等待配置监控数据...</p>
+          </div>
+        </section>
+
+        <section className="app-card placeholder-cell">
+          <div className="placeholder-content">
+            <span className="placeholder-icon">🔍</span>
+            <h3>监视器 04</h3>
+            <p>等待配置监控数据...</p>
+          </div>
+        </section>
+
+        <section className="app-card placeholder-cell">
+          <div className="placeholder-content">
+            <span className="placeholder-icon">💼</span>
+            <h3>监视器 05</h3>
+            <p>等待配置监控数据...</p>
+          </div>
+        </section>
+
+        <section className="app-card placeholder-cell">
+          <div className="placeholder-content">
+            <span className="placeholder-icon">⚙️</span>
+            <h3>监视器 06</h3>
+            <p>等待配置监控数据...</p>
+          </div>
+        </section>
+      </div>
     </main>
   );
 }
