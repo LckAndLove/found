@@ -1121,9 +1121,8 @@ button:disabled {
 
 .fund-name-cell {
   display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 2px;
+  align-items: center;
+  gap: 5px;
   min-width: 0;
 }
 

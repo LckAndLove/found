@@ -355,7 +355,7 @@ function App() {
               <table className="fund-monitor-table">
                 <thead>
                   <tr>
-                    <th>基金名称 ({watchlist.length})</th>
+                    <th style={{ maxWidth: "220px", width: "220px" }}>基金名称 ({watchlist.length})</th>
                     <th style={{ textAlign: "right" }}>估算净值</th>
                     <th style={{ textAlign: "right" }}>成本</th>
                     <th style={{ textAlign: "right" }}>持仓份额</th>
@@ -404,7 +404,7 @@ function App() {
                       <tr key={item.code}>
                         <td>
                           <div className="fund-name-cell">
-                            <span className="fund-name">{detail?.name ?? item.name ?? "加载中..."}</span>
+                            <span className="fund-name" style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: "160px" }}>{detail?.name ?? item.name ?? "加载中..."}</span>
                             {isFundSuspended(item.code) && <span className="suspended-badge-sidebar">停申</span>}
                           </div>
                         </td>
