@@ -243,8 +243,33 @@ export function createFundDataClient(http: UpstreamHttpClient): FundDataClient {
     },
 
     async getMarketIndices() {
-      const raw = await http.getText(`https://qt.gtimg.cn/q=s_sh000001,s_sz399300,s_sz399001,s_sz399006,s_sh000688&_t=${Date.now()}`);
+      const symbols = [
+        "s_sh000001", // 上证指数
+        "s_sh000016", // 上证50
+        "s_sz399300", // 沪深300
+        "s_sh000905", // 中证500
+        "s_sh000852", // 中证1000
+        "s_sh000510", // 中证A500
+        "s_sz399001", // 深证成指
+        "s_sz399004", // 深证100
+        "s_sz399006", // 创业板指
+        "s_sh000688", // 科创50
+      ].join(",");
+      const raw = await http.getText(`https://qt.gtimg.cn/q=${symbols}&_t=${Date.now()}`);
       const lines = raw.split("\n").filter(Boolean);
+      const nameMap: Record<string, string> = {
+        sh000001: "上证指数",
+        sh000016: "上证50",
+        sz399300: "沪深300",
+        sh000300: "沪深300",
+        sh000905: "中证500",
+        sh000852: "中证1000",
+        sh000510: "中证A500",
+        sz399001: "深证成指",
+        sz399004: "深证100",
+        sz399006: "创业板指",
+        sh000688: "科创50",
+      };
       const indices = lines.map((line) => {
         const eqIdx = line.indexOf("=");
         if (eqIdx === -1) return null;
@@ -252,12 +277,8 @@ export function createFundDataClient(http: UpstreamHttpClient): FundDataClient {
         const parts = valStr.split("~");
         if (parts.length < 6) return null;
 
-        let name = parts[1];
-        if (line.includes("sh000001")) name = "上证指数";
-        else if (line.includes("sz399300") || line.includes("sh000300")) name = "沪深300";
-        else if (line.includes("sz399001")) name = "深证成指";
-        else if (line.includes("sz399006")) name = "创业板指";
-        else if (line.includes("sh000688")) name = "科创50";
+        const matchedKey = Object.keys(nameMap).find(k => line.includes(k));
+        const name = matchedKey ? nameMap[matchedKey] : parts[1];
 
         return {
           name,

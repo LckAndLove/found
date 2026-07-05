@@ -1024,12 +1024,13 @@ button:disabled {
 /* 1. Market Indices Bar */
 .market-indices-bar {
   display: grid;
-  grid-template-columns: repeat(5, 1fr);
+  grid-template-columns: repeat(10, minmax(76px, 1fr));
   gap: 4px;
   padding: 6px 8px;
   background: var(--bg-hover);
   border-radius: 10px;
   margin-bottom: 8px;
+  overflow-x: auto;
 }
 
 .index-item {
@@ -1038,6 +1039,7 @@ button:disabled {
   align-items: center;
   text-align: center;
   gap: 2px;
+  min-width: 0;
 }
 
 .index-name {
