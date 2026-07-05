@@ -1,0 +1,28 @@
+{
+  "name": "3-found",
+  "version": "0.1.0",
+  "private": true,
+  "description": "自用 macOS 桌面应用",
+  "workspaces": [
+    "apps/*"
+  ],
+  "scripts": {
+    "dev": "concurrently -k -n backend,frontend,desktop -c blue,green,magenta \"npm run dev -w @found/backend\" \"npm run dev -w @found/frontend\" \"wait-on tcp:4317 tcp:5173 && npm run dev -w @found/desktop\"",
+    "dev:web": "concurrently -k -n backend,frontend -c blue,green \"npm run dev -w @found/backend\" \"npm run dev -w @found/frontend\"",
+    "build": "npm run build -w @found/backend && npm run build -w @found/frontend && npm run build -w @found/desktop",
+    "package:mac": "npm run build && npm run package:mac -w @found/desktop",
+    "check": "npm run check -w @found/backend && npm run check -w @found/frontend && npm run check -w @found/desktop"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.10",
+    "concurrently": "^9.2.0",
+    "electron": "37.10.3",
+    "electron-builder": "^26.0.12",
+    "esbuild": "^0.25.6",
+    "typescript": "^5.8.3",
+    "wait-on": "^8.0.3"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}

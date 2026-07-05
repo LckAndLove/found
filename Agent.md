@@ -32,7 +32,9 @@
 - 新增抽象必须服务于真实复杂度，避免过早设计。
 - 注释应解释意图、边界或复杂逻辑，避免重复代码本身。
 - 优先使用项目已有工具链、脚本和依赖。
-- 在项目技术栈尚未确定前，不主动引入框架、构建工具或复杂目录结构。
+- 项目使用 TypeScript，新增前端、后端和桌面端代码默认使用 TypeScript。
+- 前端使用 React + Vite，后端使用 Express，桌面端使用 Electron。
+- Electron 主进程使用 esbuild 打包为 CommonJS (`dist/main.cjs`)；Express 依赖包含动态 `require`，不要把主进程打成 ESM bundle。
 
 ## 文件与变更
 
@@ -40,7 +42,9 @@
 - 修改配置文件前先确认其影响范围。
 - 不主动格式化无关文件。
 - 不删除看似未使用的文件，除非任务明确要求或已有充分证据。
-- 项目目前处于早期状态，新增约定应优先记录在本文件中。
+- 项目采用 npm workspaces 管理 `apps/*`。
+- 前端代码放在 `apps/frontend`，后端代码放在 `apps/backend`，桌面端代码放在 `apps/desktop`。
+- 项目文档放在 `docs`，自动化或辅助脚本放在 `scripts`。
 
 ## Git 规范
 
@@ -64,11 +68,14 @@
 
 ## 待补充
 
-- 技术栈：
-- 启动命令：
-- 测试命令：
-- 构建命令：
-- 部署方式：
-- 目录结构：
-- 核心模块：
-- 用户偏好：
+- 技术栈：TypeScript、React、Vite、Express、Electron、electron-builder。
+- 启动命令：`npm run dev` 启动后端、前端和 Electron 桌面端；`npm run dev:web` 只启动后端和前端。
+- 测试命令：当前未建立测试框架，先使用 `npm run check` 做类型检查。
+- 构建命令：`npm run build`。
+- 打包命令：`npm run package:mac` 生成 macOS 应用目录包。
+- 打包产物：`apps/desktop/release/mac-arm64/3.found.app`。
+- 桌面端主进程日志：`~/Library/Application Support/@found/desktop/main.log`。
+- 部署方式：当前目标为本地自用 macOS 应用，暂不做远程部署。
+- 目录结构：`apps/backend`、`apps/frontend`、`apps/desktop`、`docs`、`scripts`。
+- 核心模块：后端 API、前端界面、Electron 桌面壳。
+- 用户偏好：中文沟通；提交信息使用简洁规范的中文日志。

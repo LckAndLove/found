@@ -1,0 +1,42 @@
+{
+  "name": "@found/desktop",
+  "version": "0.1.0",
+  "private": true,
+  "description": "3.found macOS 桌面应用",
+  "author": "milo",
+  "type": "module",
+  "main": "dist/main.cjs",
+  "scripts": {
+    "dev": "npm run build && FOUND_FRONTEND_URL=http://127.0.0.1:5173 electron .",
+    "build": "esbuild src/main.ts --bundle --platform=node --format=cjs --external:electron --outfile=dist/main.cjs && esbuild src/preload.ts --bundle --platform=node --format=cjs --external:electron --outfile=dist/preload.cjs",
+    "check": "tsc -p tsconfig.json --noEmit",
+    "package:mac": "electron-builder --mac dir"
+  },
+  "build": {
+    "appId": "com.local.3found",
+    "productName": "3.found",
+    "electronVersion": "37.10.3",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "dist/**/*",
+      "package.json"
+    ],
+    "extraResources": [
+      {
+        "from": "../frontend/dist",
+        "to": "frontend"
+      }
+    ],
+    "mac": {
+      "category": "public.app-category.productivity",
+      "target": [
+        "dir"
+      ]
+    }
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.10"
+  }
+}
