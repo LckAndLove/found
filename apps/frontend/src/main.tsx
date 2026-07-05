@@ -367,7 +367,10 @@ function App() {
                     setEditingCode(null);
                   }}
                 >
-                  <span>{detail?.name ?? item.name ?? item.code}</span>
+                  <div className="fund-row-name-container">
+                    <span className="fund-row-name-text">{detail?.name ?? item.name ?? item.code}</span>
+                    {isFundSuspended(item.code) && <span className="suspended-badge-sidebar">停申</span>}
+                  </div>
                   <strong className={rateClass}>{formatRate(rate)}</strong>
                 </button>
               );
@@ -528,7 +531,12 @@ function FundSummary(props: {
       <div className="summary-head">
         <div>
           <small>{props.code}</small>
-          <h2>{detail?.name ?? props.fallbackName}</h2>
+          <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap", marginTop: 4 }}>
+            <h2 style={{ margin: 0 }}>{detail?.name ?? props.fallbackName}</h2>
+            {isFundSuspended(props.code) && (
+              <span className="suspended-badge-detail">暂停申购</span>
+            )}
+          </div>
         </div>
         <strong className={`rate-badge ${rateClass}`}>
           {props.loading ? "更新中" : formatRate(rate)}
@@ -710,6 +718,10 @@ function FundSummary(props: {
       </div>
     </section>
   );
+}
+
+function isFundSuspended(code: string | null | undefined): boolean {
+  return code === "012922" || code === "012920";
 }
 
 function isTradingDay(date: Date = new Date()): boolean {
