@@ -72,29 +72,48 @@ function App() {
 
   useEffect(() => {
     const keyword = query.trim();
+    let cancelled = false;
+
     if (!keyword) {
       setSearchResults([]);
       setSearching(false);
-      return;
+      return () => {
+        cancelled = true;
+      };
     }
 
     const timer = window.setTimeout(() => {
       setSearching(true);
       searchFunds(keyword)
         .then((result) => {
+          if (cancelled) {
+            return;
+          }
+
           setSearchResults(result.items.slice(0, appConfig.funds.searchResultLimit));
           setError(null);
         })
         .catch((requestError: Error) => {
+          if (cancelled) {
+            return;
+          }
+
           setSearchResults([]);
           setError(formatError(requestError));
         })
         .finally(() => {
+          if (cancelled) {
+            return;
+          }
+
           setSearching(false);
         });
     }, 260);
 
-    return () => window.clearTimeout(timer);
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timer);
+    };
   }, [query]);
 
   const selectedDetail = selectedCode ? details.data[selectedCode] : null;
@@ -158,7 +177,7 @@ function App() {
       <section className="app-card">
         <header className="topbar">
           <div>
-          <p className="eyebrow">{appConfig.app.name}</p>
+            <p className="eyebrow">{appConfig.app.name}</p>
             <h1>基金自选</h1>
           </div>
           <span className="status" data-ok={health?.ok ? "true" : "false"}>
