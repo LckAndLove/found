@@ -30,6 +30,8 @@ function App() {
   const [health, setHealth] = useState<HealthResponse | null>(null);
   const [watchlist, setWatchlist] = useState<FundWatchlistItem[]>([]);
   const [selectedCode, setSelectedCode] = useState<string | null>(null);
+  const [editingCode, setEditingCode] = useState<string | null>(null);
+  const [autoRefresh, setAutoRefresh] = useState(true);
   
   const [details, setDetails] = useState<DetailState>({
     data: {},
@@ -80,6 +82,22 @@ function App() {
       mounted = false;
     };
   }, []);
+
+  // Auto-refresh interval (60 seconds)
+  useEffect(() => {
+    if (!autoRefresh || watchlist.length === 0) {
+      return;
+    }
+
+    const interval = setInterval(() => {
+      watchlist.forEach((item) => {
+        void loadDetail(item.code);
+        void loadIntraday(item.code);
+      });
+    }, 60000);
+
+    return () => clearInterval(interval);
+  }, [autoRefresh, watchlist]);
 
   useEffect(() => {
     const keyword = query.trim();
@@ -179,6 +197,7 @@ function App() {
       const item = await addWatchlistItem({ code: fund.code, name: fund.name });
       setWatchlist((current) => upsertWatchlist(current, item));
       setSelectedCode(item.code);
+      setEditingCode(item.code); // Auto focus and open the holdings editor
       setMessage(`已添加 ${fund.name}`);
       setQuery("");
       setSearchResults([]);
@@ -194,6 +213,17 @@ function App() {
   }
 
   async function removeFund(code: string) {
+    const item = watchlist.find((i) => i.code === code);
+    const hasShares = item && item.holdingShares && item.holdingShares > 0;
+    if (hasShares) {
+      const confirmed = window.confirm(
+        `“${item.name || code}”已配置持仓数据，确定要将其从自选列表中移除吗？\n（此操作将永久清空该基金的持仓份额与成本数据）`
+      );
+      if (!confirmed) {
+        return;
+      }
+    }
+
     try {
       await removeWatchlistItem(code);
       setWatchlist((current) => current.filter((item) => item.code !== code));
@@ -204,6 +234,7 @@ function App() {
       }));
       setIntradayData((current) => omitKey(current, code));
       setSelectedCode((current) => (current === code ? watchlist.find((item) => item.code !== code)?.code ?? null : current));
+      setEditingCode(null);
       setMessage("已从自选列表中移除");
       setTimeout(() => setMessage(null), 3000);
     } catch (requestError) {
@@ -265,12 +296,21 @@ function App() {
       <section className="app-card">
         <header className="topbar">
           <div>
-            <p className="eyebrow">{appConfig.app.name}</p>
             <h1>基金自选</h1>
           </div>
-          <span className="status" data-ok={health?.ok ? "true" : "false"}>
-            {health?.ok ? "服务已连接" : initializing ? "服务连接中..." : "服务连接失败"}
-          </span>
+          <div className="topbar-actions">
+            <label className="auto-refresh-toggle">
+              <input
+                type="checkbox"
+                checked={autoRefresh}
+                onChange={(e) => setAutoRefresh(e.target.checked)}
+              />
+              <span>自动刷新 (60s)</span>
+            </label>
+            <span className="status" data-ok={health?.ok ? "true" : "false"}>
+              {health?.ok ? "服务已连接" : initializing ? "服务连接中..." : "服务连接失败"}
+            </span>
+          </div>
         </header>
 
         <div className="search-box">
@@ -328,7 +368,10 @@ function App() {
                   className="fund-row"
                   data-active={selectedCode === item.code ? "true" : "false"}
                   key={item.code}
-                  onClick={() => setSelectedCode(item.code)}
+                  onClick={() => {
+                    setSelectedCode(item.code);
+                    setEditingCode(null);
+                  }}
                 >
                   <span>{detail?.name ?? item.name ?? item.code}</span>
                   <strong className={rateClass}>{formatRate(rate)}</strong>
@@ -347,6 +390,9 @@ function App() {
             error={selectedCode ? details.errorByCode[selectedCode] : undefined}
             holdingShares={selectedItem?.holdingShares ?? null}
             costPrice={selectedItem?.costPrice ?? null}
+            isEditing={selectedCode ? editingCode === selectedCode : false}
+            onStartEdit={selectedCode ? () => setEditingCode(selectedCode) : () => {}}
+            onCancelEdit={() => setEditingCode(null)}
             onSaveHoldings={selectedCode ? (shares, cost) => saveHoldings(selectedCode, shares, cost) : undefined}
             onRefresh={selectedCode ? () => { void loadDetail(selectedCode); void loadIntraday(selectedCode); } : undefined}
             onRemove={selectedCode ? () => void removeFund(selectedCode) : undefined}
@@ -399,22 +445,31 @@ function FundSummary(props: {
   error?: string;
   holdingShares: number | null;
   costPrice: number | null;
+  isEditing: boolean;
+  onStartEdit: () => void;
+  onCancelEdit: () => void;
   onSaveHoldings?: (shares: number | null, cost: number | null) => Promise<void> | void;
   onRefresh?: () => void;
   onRemove?: () => void;
 }) {
   const [activeTab, setActiveTab] = useState<"trends" | "holdings">("trends");
-  const [isEditing, setIsEditing] = useState(false);
   const [editShares, setEditShares] = useState("");
   const [editCost, setEditCost] = useState("");
 
-  // Reset local form inputs when switching fund or properties change
+  // Sync inputs when props change
   useEffect(() => {
     setEditShares(props.holdingShares !== null ? String(props.holdingShares) : "");
     setEditCost(props.costPrice !== null ? String(props.costPrice) : "");
-    setIsEditing(false);
     setActiveTab("trends");
   }, [props.code, props.holdingShares, props.costPrice]);
+
+  // Sync inputs when editing mode is toggled by parent
+  useEffect(() => {
+    if (props.isEditing) {
+      setEditShares(props.holdingShares !== null ? String(props.holdingShares) : "");
+      setEditCost(props.costPrice !== null ? String(props.costPrice) : "");
+    }
+  }, [props.isEditing]);
 
   if (!props.code) {
     return (
@@ -468,7 +523,7 @@ function FundSummary(props: {
     if (props.onSaveHoldings) {
       props.onSaveHoldings(sharesVal, costVal);
     }
-    setIsEditing(false);
+    props.onCancelEdit();
   };
 
   return (
@@ -611,7 +666,7 @@ function FundSummary(props: {
       )}
 
       {/* Inline Holdings Editor Form */}
-      {isEditing && (
+      {props.isEditing && (
         <div className="holdings-editor">
           <h3>编辑您的持仓数据</h3>
           <div className="holdings-editor-fields">
@@ -637,15 +692,15 @@ function FundSummary(props: {
             </div>
           </div>
           <div className="holdings-editor-actions">
-            <button onClick={() => setIsEditing(false)}>取消</button>
+            <button onClick={props.onCancelEdit}>取消</button>
             <button className="primary" onClick={handleSave}>保存</button>
           </div>
         </div>
       )}
 
       <div className="actions">
-        {!isEditing && (
-          <button onClick={() => setIsEditing(true)} disabled={props.loading}>
+        {!props.isEditing && (
+          <button onClick={props.onStartEdit} disabled={props.loading}>
             编辑持仓
           </button>
         )}

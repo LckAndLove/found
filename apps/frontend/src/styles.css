@@ -896,3 +896,31 @@ button:disabled {
     grid-template-columns: 1fr;
   }
 }
+
+.topbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.auto-refresh-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--text-secondary);
+  cursor: pointer;
+  user-select: none;
+}
+
+.auto-refresh-toggle input {
+  width: 15px;
+  height: 15px;
+  cursor: pointer;
+  accent-color: var(--text-primary);
+}
+
+.auto-refresh-toggle:hover {
+  color: var(--text-primary);
+}
