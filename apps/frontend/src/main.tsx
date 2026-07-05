@@ -464,6 +464,9 @@ function App() {
                           <div className="fund-name-cell">
                             <span className="fund-name">{detail?.name ?? item.name ?? "加载中..."}</span>
                             {isFundSuspended(item.code) && <span className="suspended-badge-sidebar">停申</span>}
+                            {getFundPurchaseLimit(item.code) ? (
+                              <span className="limit-badge-sidebar">限{getFundPurchaseLimit(item.code)?.dailyAmount}</span>
+                            ) : null}
                           </div>
                         </td>
                         <td style={{ textAlign: "right" }} className="flat font-number">
@@ -659,6 +662,11 @@ function FundSummary(props: {
             {isFundSuspended(props.code) && (
               <span className="suspended-badge-detail">暂停申购</span>
             )}
+            {getFundPurchaseLimit(props.code) ? (
+              <span className="limit-badge-detail">
+                每日限购{getFundPurchaseLimit(props.code)?.dailyAmount}元
+              </span>
+            ) : null}
           </div>
         </div>
         <strong className={`rate-badge ${rateClass}`}>
@@ -845,6 +853,16 @@ function FundSummary(props: {
 
 function isFundSuspended(code: string | null | undefined): boolean {
   return code === "012922" || code === "012920";
+}
+
+function getFundPurchaseLimit(code: string | null | undefined): { dailyAmount: number } | null {
+  const limits: Record<string, { dailyAmount: number }> = {
+    "006503": { dailyAmount: 100 },
+    "021528": { dailyAmount: 100 },
+    "017641": { dailyAmount: 10 }
+  };
+
+  return code ? limits[code] ?? null : null;
 }
 
 function isTradingDay(date: Date = new Date()): boolean {
