@@ -4,6 +4,8 @@ export type FundWatchlistItem = {
   code: string;
   name: string | null;
   sortOrder: number;
+  holdingShares: number | null;
+  costPrice: number | null;
   createdAt: string;
   updatedAt: string;
 };
@@ -11,6 +13,7 @@ export type FundWatchlistItem = {
 export type FundWatchlistRepository = {
   list(): FundWatchlistItem[];
   upsert(input: { code: string; name?: string | null }): FundWatchlistItem;
+  updateHoldings(code: string, input: { holdingShares: number | null; costPrice: number | null }): FundWatchlistItem;
   remove(code: string): boolean;
 };
 
@@ -20,7 +23,9 @@ export function createFundWatchlistRepository(connection: DatabaseSync): FundWat
       return connection
         .prepare(
           `
-            SELECT code, name, sort_order AS sortOrder, created_at AS createdAt, updated_at AS updatedAt
+            SELECT code, name, sort_order AS sortOrder,
+                   holding_shares AS holdingShares, cost_price AS costPrice,
+                   created_at AS createdAt, updated_at AS updatedAt
             FROM fund_watchlist
             ORDER BY sort_order ASC, created_at ASC
           `
@@ -45,6 +50,20 @@ export function createFundWatchlistRepository(connection: DatabaseSync): FundWat
       return getByCode(connection, input.code);
     },
 
+    updateHoldings(code, input) {
+      connection
+        .prepare(
+          `
+            UPDATE fund_watchlist
+            SET holding_shares = ?, cost_price = ?, updated_at = datetime('now')
+            WHERE code = ?
+          `
+        )
+        .run(input.holdingShares, input.costPrice, code);
+
+      return getByCode(connection, code);
+    },
+
     remove(code) {
       const result = connection.prepare("DELETE FROM fund_watchlist WHERE code = ?").run(code);
       return result.changes > 0;
@@ -63,7 +82,9 @@ function getByCode(connection: DatabaseSync, code: string) {
   const item = connection
     .prepare(
       `
-        SELECT code, name, sort_order AS sortOrder, created_at AS createdAt, updated_at AS updatedAt
+        SELECT code, name, sort_order AS sortOrder,
+               holding_shares AS holdingShares, cost_price AS costPrice,
+               created_at AS createdAt, updated_at AS updatedAt
         FROM fund_watchlist
         WHERE code = ?
       `

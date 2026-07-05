@@ -12,6 +12,7 @@ import {
   optionalBoolean,
   optionalInteger,
   optionalTrimmedString,
+  optionalNumber,
   requireDateString,
   requireFundCode,
   requireNonEmptyString
@@ -77,6 +78,16 @@ export function createApiApp() {
       const code = requireFundCode(request.body?.code);
       const name = optionalTrimmedString(request.body?.name, "name");
       response.status(201).json(await fundService.upsertWatchlistItem({ code, name }));
+    })
+  );
+
+  app.patch(
+    "/api/funds/watchlist/:code",
+    asyncHandler(async (request, response) => {
+      const code = requireFundCode(request.params.code);
+      const holdingShares = optionalNumber(request.body?.holdingShares, "holdingShares");
+      const costPrice = optionalNumber(request.body?.costPrice, "costPrice");
+      response.json(await fundService.updateWatchlistItemHoldings(code, { holdingShares, costPrice }));
     })
   );
 

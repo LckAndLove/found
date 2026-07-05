@@ -8,6 +8,7 @@ import {
   getIntraday,
   listWatchlist,
   removeWatchlistItem,
+  updateWatchlistItemHoldings,
   searchFunds,
   type FundDetail,
   type FundSearchItem,
@@ -210,6 +211,48 @@ function App() {
     }
   }
 
+  async function saveHoldings(code: string, holdingShares: number | null, costPrice: number | null) {
+    try {
+      const updatedItem = await updateWatchlistItemHoldings(code, { holdingShares, costPrice });
+      setWatchlist((current) =>
+        current.map((item) =>
+          item.code === code
+            ? { ...item, holdingShares: updatedItem.holdingShares, costPrice: updatedItem.costPrice }
+            : item
+        )
+      );
+      setMessage("持仓与成本已保存");
+      setTimeout(() => setMessage(null), 3000);
+    } catch (requestError) {
+      setError(formatError(requestError));
+    }
+  }
+
+  // Portfolio calculations
+  let totalValue = 0;
+  let totalCost = 0;
+  let totalTodayChange = 0;
+  let hasHoldings = false;
+
+  watchlist.forEach((item) => {
+    const detail = details.data[item.code];
+    if (item.holdingShares && item.holdingShares > 0) {
+      hasHoldings = true;
+      const dwjzVal = detail?.dwjz ? parseFloat(detail.dwjz) : 0;
+      const gszVal = detail?.gsz ? parseFloat(detail.gsz) : dwjzVal;
+      const costVal = item.costPrice || 0;
+
+      totalValue += item.holdingShares * dwjzVal;
+      totalCost += item.holdingShares * costVal;
+      if (detail?.gsz) {
+        totalTodayChange += item.holdingShares * (gszVal - dwjzVal);
+      }
+    }
+  });
+
+  const totalGainLoss = totalValue - totalCost;
+  const totalReturnRate = totalCost > 0 ? (totalGainLoss / totalCost) * 100 : 0;
+
   return (
     <main className="app-shell">
       <section className="app-card">
@@ -247,6 +290,27 @@ function App() {
 
         <div className="content">
           <aside className="fund-list">
+            {hasHoldings && (
+              <div className="portfolio-card">
+                <span className="label">资产总值 (估算)</span>
+                <span className="value">¥ {totalValue.toLocaleString("zh-CN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                <div className="row">
+                  <div className="row-item">
+                    <small style={{ color: "var(--text-secondary)", fontSize: "0.7rem", fontWeight: "700" }}>今日盈亏</small>
+                    <span className={getRateClass(totalTodayChange)}>
+                      {totalTodayChange > 0 ? "+" : ""}{totalTodayChange.toFixed(2)} 元
+                    </span>
+                  </div>
+                  <div className="row-item" style={{ alignItems: "flex-end" }}>
+                    <small style={{ color: "var(--text-secondary)", fontSize: "0.7rem", fontWeight: "700" }}>累计盈亏</small>
+                    <span className={getRateClass(totalGainLoss)}>
+                      {totalGainLoss > 0 ? "+" : ""}{totalGainLoss.toFixed(2)} 元 ({totalReturnRate > 0 ? "+" : ""}{totalReturnRate.toFixed(2)}%)
+                    </span>
+                  </div>
+                </div>
+              </div>
+            )}
+            
             {watchlist.length === 0 ? <p className="empty">您的自选列表为空</p> : null}
             {watchlist.map((item) => {
               const detail = details.data[item.code];
@@ -274,6 +338,9 @@ function App() {
             fallbackName={selectedItem?.name ?? selectedCode ?? ""}
             loading={selectedCode ? details.loadingCodes.has(selectedCode) : false}
             error={selectedCode ? details.errorByCode[selectedCode] : undefined}
+            holdingShares={selectedItem?.holdingShares ?? null}
+            costPrice={selectedItem?.costPrice ?? null}
+            onSaveHoldings={selectedCode ? (shares, cost) => saveHoldings(selectedCode, shares, cost) : undefined}
             onRefresh={selectedCode ? () => { void loadDetail(selectedCode); void loadIntraday(selectedCode); } : undefined}
             onRemove={selectedCode ? () => void removeFund(selectedCode) : undefined}
           />
@@ -323,26 +390,34 @@ function FundSummary(props: {
   fallbackName: string;
   loading: boolean;
   error?: string;
+  holdingShares: number | null;
+  costPrice: number | null;
+  onSaveHoldings?: (shares: number | null, cost: number | null) => Promise<void> | void;
   onRefresh?: () => void;
   onRemove?: () => void;
 }) {
   const [activeTab, setActiveTab] = useState<"trends" | "holdings">("trends");
+  const [isEditing, setIsEditing] = useState(false);
+  const [editShares, setEditShares] = useState("");
+  const [editCost, setEditCost] = useState("");
 
-  // Keep active tab state reset on fund code change
+  // Reset local form inputs when switching fund or properties change
   useEffect(() => {
+    setEditShares(props.holdingShares !== null ? String(props.holdingShares) : "");
+    setEditCost(props.costPrice !== null ? String(props.costPrice) : "");
+    setIsEditing(false);
     setActiveTab("trends");
-  }, [props.code]);
+  }, [props.code, props.holdingShares, props.costPrice]);
 
   if (!props.code) {
     return (
       <section className="summary empty-summary">
         <h2>选择一只基金</h2>
-        <p>在左侧列表中选择，或在上方搜索并添加一只自选基金，这里会展示高级图表和持仓明细。</p>
+        <p>在左侧列表中选择，或在上方搜索并添加自选基金。支持输入您的持仓成本价和份额，实时查看个人资产盈亏。</p>
       </section>
     );
   }
 
-  // Display skeleton if loading and we do not have cached details
   if (props.loading && !props.detail) {
     return <FundSummarySkeleton />;
   }
@@ -350,6 +425,29 @@ function FundSummary(props: {
   const detail = props.detail;
   const rate = detail?.gszzl ?? detail?.zzl;
   const rateClass = getRateClass(rate);
+
+  // Calculations for current fund holdings
+  const hasHoldings = props.holdingShares !== null && props.holdingShares > 0;
+  const dwjzNum = detail?.dwjz ? parseFloat(detail.dwjz) : 0;
+  const gszNum = detail?.gsz ? parseFloat(detail.gsz) : dwjzNum;
+  const costNum = props.costPrice || 0;
+  const sharesNum = props.holdingShares || 0;
+
+  const currentValue = sharesNum * dwjzNum;
+  const estCurrentValue = sharesNum * gszNum;
+  const totalProfit = sharesNum * (dwjzNum - costNum);
+  const estTodayProfit = detail?.gsz ? sharesNum * (gszNum - dwjzNum) : 0;
+  const totalReturn = costNum > 0 ? (totalProfit / (sharesNum * costNum)) * 100 : 0;
+
+  const handleSave = () => {
+    const sharesVal = editShares.trim() === "" ? null : parseFloat(editShares);
+    const costVal = editCost.trim() === "" ? null : parseFloat(editCost);
+    
+    if (props.onSaveHoldings) {
+      props.onSaveHoldings(sharesVal, costVal);
+    }
+    setIsEditing(false);
+  };
 
   return (
     <section className="summary">
@@ -365,20 +463,56 @@ function FundSummary(props: {
 
       {props.error ? <p className="error">{props.error}</p> : null}
 
-      <dl className="values">
-        <div>
-          <dt>单位净值</dt>
-          <dd>{detail?.dwjz ?? "--"}</dd>
-        </div>
-        <div>
-          <dt>估算净值</dt>
-          <dd>{detail?.gsz ?? "--"}</dd>
-        </div>
-        <div>
-          <dt>数据时间/净值日</dt>
-          <dd>{detail?.gztime ?? detail?.jzrq ?? "--"}</dd>
-        </div>
-      </dl>
+      {/* Grid: 6 cards if holds, 3 cards otherwise */}
+      {hasHoldings ? (
+        <dl className="values" style={{ gridTemplateColumns: "repeat(3, minmax(0, 1fr))" }}>
+          <div>
+            <dt>单位净值</dt>
+            <dd>{detail?.dwjz ?? "--"}</dd>
+          </div>
+          <div>
+            <dt>估算净值</dt>
+            <dd>{detail?.gsz ?? "--"}</dd>
+          </div>
+          <div>
+            <dt>今日预估盈亏</dt>
+            <dd className={getRateClass(estTodayProfit)}>
+              {detail?.gsz ? `${estTodayProfit >= 0 ? "+" : ""}${estTodayProfit.toFixed(2)} 元` : "--"}
+            </dd>
+          </div>
+          <div>
+            <dt>当前持仓估值</dt>
+            <dd>¥ {estCurrentValue.toLocaleString("zh-CN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</dd>
+          </div>
+          <div>
+            <dt>持仓累计盈亏</dt>
+            <dd className={getRateClass(totalProfit)}>
+              {totalProfit >= 0 ? "+" : ""}{totalProfit.toFixed(2)} 元 ({totalReturn >= 0 ? "+" : ""}{totalReturn.toFixed(2)}%)
+            </dd>
+          </div>
+          <div>
+            <dt>持仓成本 (持有份额)</dt>
+            <dd style={{ fontSize: "1.05rem" }}>
+              {costNum.toFixed(4)} 元 ({sharesNum.toFixed(2)} 份)
+            </dd>
+          </div>
+        </dl>
+      ) : (
+        <dl className="values">
+          <div>
+            <dt>单位净值</dt>
+            <dd>{detail?.dwjz ?? "--"}</dd>
+          </div>
+          <div>
+            <dt>估算净值</dt>
+            <dd>{detail?.gsz ?? "--"}</dd>
+          </div>
+          <div>
+            <dt>数据时间/净值日</dt>
+            <dd>{detail?.gztime ?? detail?.jzrq ?? "--"}</dd>
+          </div>
+        </dl>
+      )}
 
       {detail && (
         <>
@@ -452,7 +586,45 @@ function FundSummary(props: {
         </>
       )}
 
+      {/* Inline Holdings Editor Form */}
+      {isEditing && (
+        <div className="holdings-editor">
+          <h3>编辑您的持仓数据</h3>
+          <div className="holdings-editor-fields">
+            <div className="editor-field">
+              <label>持有份额 (份)</label>
+              <input
+                type="number"
+                step="any"
+                value={editShares}
+                onChange={(e) => setEditShares(e.target.value)}
+                placeholder="例如 2249.74"
+              />
+            </div>
+            <div className="editor-field">
+              <label>持仓成本价 (元)</label>
+              <input
+                type="number"
+                step="any"
+                value={editCost}
+                onChange={(e) => setEditCost(e.target.value)}
+                placeholder="例如 4.6222"
+              />
+            </div>
+          </div>
+          <div className="holdings-editor-actions">
+            <button onClick={() => setIsEditing(false)}>取消</button>
+            <button className="primary" onClick={handleSave}>保存</button>
+          </div>
+        </div>
+      )}
+
       <div className="actions">
+        {!isEditing && (
+          <button onClick={() => setIsEditing(true)} disabled={props.loading}>
+            编辑持仓
+          </button>
+        )}
         <button onClick={props.onRefresh} disabled={props.loading}>
           {props.loading ? "正在刷新" : "手动刷新"}
         </button>

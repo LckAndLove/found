@@ -62,4 +62,12 @@ function migrate(connection: DatabaseSync) {
       INSERT INTO schema_migrations (version) VALUES (1);
     `);
   }
+
+  if (currentVersion < 2) {
+    connection.exec(`
+      ALTER TABLE fund_watchlist ADD COLUMN holding_shares REAL DEFAULT NULL;
+      ALTER TABLE fund_watchlist ADD COLUMN cost_price REAL DEFAULT NULL;
+      INSERT INTO schema_migrations (version) VALUES (2);
+    `);
+  }
 }

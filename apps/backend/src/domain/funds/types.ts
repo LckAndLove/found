@@ -65,6 +65,8 @@ export type FundWatchlistItem = {
   code: string;
   name: string | null;
   sortOrder: number;
+  holdingShares: number | null;
+  costPrice: number | null;
   createdAt: string;
   updatedAt: string;
 };

@@ -60,6 +60,8 @@ export type FundWatchlistItem = {
   code: string;
   name: string | null;
   sortOrder: number;
+  holdingShares: number | null;
+  costPrice: number | null;
   createdAt: string;
   updatedAt: string;
 };
@@ -112,6 +114,16 @@ export async function addWatchlistItem(input: { code: string; name?: string | nu
 export async function removeWatchlistItem(code: string) {
   await request<void>(`/api/funds/watchlist/${encodeURIComponent(code)}`, {
     method: "DELETE"
+  });
+}
+
+export async function updateWatchlistItemHoldings(code: string, input: { holdingShares: number | null; costPrice: number | null }) {
+  return request<FundWatchlistItem>(`/api/funds/watchlist/${encodeURIComponent(code)}`, {
+    method: "PATCH",
+    headers: {
+      "content-type": "application/json"
+    },
+    body: JSON.stringify(input)
   });
 }
 

@@ -13,6 +13,7 @@ export type FundService = {
   searchFunds(keyword: string): Promise<FundSearchItem[]>;
   listWatchlist(): Promise<FundWatchlistItem[]>;
   upsertWatchlistItem(input: { code: string; name?: string | null }): Promise<FundWatchlistItem>;
+  updateWatchlistItemHoldings(code: string, input: { holdingShares: number | null; costPrice: number | null }): Promise<FundWatchlistItem>;
   removeWatchlistItem(code: string): Promise<void>;
   getFundDetail(code: string, options?: { includeHoldings?: boolean; includeTrend?: boolean }): Promise<FundDetail>;
   getFundNetValue(code: string, date: string): Promise<FundNetValue>;
@@ -35,6 +36,10 @@ export function createFundService(dataClient: FundDataClient, watchlistRepositor
 
     async upsertWatchlistItem(input) {
       return watchlistRepository.upsert(input);
+    },
+
+    async updateWatchlistItemHoldings(code, input) {
+      return watchlistRepository.updateHoldings(code, input);
     },
 
     async removeWatchlistItem(code) {

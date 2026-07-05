@@ -85,3 +85,16 @@ export function optionalInteger(value: unknown, fallback: number, options: { nam
 
   return parsed;
 }
+
+export function optionalNumber(value: unknown, name: string) {
+  if (value === undefined || value === null || value === "") {
+    return null;
+  }
+
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed)) {
+    throw new BadRequestError(`${name} 必须是有效数字`, { [name]: value });
+  }
+
+  return parsed;
+}
