@@ -31,7 +31,6 @@ function App() {
   const [watchlist, setWatchlist] = useState<FundWatchlistItem[]>([]);
   const [selectedCode, setSelectedCode] = useState<string | null>(null);
   const [editingCode, setEditingCode] = useState<string | null>(null);
-  const [autoCycle, setAutoCycle] = useState(true);
   
   const [details, setDetails] = useState<DetailState>({
     data: {},
@@ -101,24 +100,7 @@ function App() {
     return () => clearInterval(interval);
   }, [watchlist]);
 
-  // Auto-cycle monitoring: switch selected fund every 15 seconds
-  useEffect(() => {
-    if (!autoCycle || watchlist.length <= 1 || editingCode !== null) {
-      return;
-    }
 
-    const timer = setInterval(() => {
-      setSelectedCode((current) => {
-        if (!current) return watchlist[0]?.code ?? null;
-        const currentIndex = watchlist.findIndex((item) => item.code === current);
-        if (currentIndex === -1) return watchlist[0]?.code ?? null;
-        const nextIndex = (currentIndex + 1) % watchlist.length;
-        return watchlist[nextIndex].code;
-      });
-    }, 15000); // 15 seconds
-
-    return () => clearInterval(timer);
-  }, [autoCycle, watchlist, editingCode]);
 
   useEffect(() => {
     const keyword = query.trim();
@@ -316,16 +298,8 @@ function App() {
     <main className="app-shell">
       <section className="app-card">
         <header className="topbar">
-          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+          <div>
             <h1>基金自选</h1>
-            <button
-              className="cycle-toggle-btn"
-              title={autoCycle ? "暂停自动轮播" : "开启自动轮播"}
-              onClick={() => setAutoCycle(!autoCycle)}
-              data-active={autoCycle ? "true" : "false"}
-            >
-              {autoCycle ? "⏸ 轮播中 (15s)" : "▶ 自动轮播"}
-            </button>
           </div>
         </header>
 
