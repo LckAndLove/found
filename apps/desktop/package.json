@@ -2,7 +2,7 @@
   "name": "@found/desktop",
   "version": "0.1.0",
   "private": true,
-  "description": "3.found macOS 桌面应用",
+  "description": "净值雷达 macOS 桌面应用",
   "author": "milo",
   "type": "module",
   "main": "dist/main.cjs",

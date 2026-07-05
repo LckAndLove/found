@@ -1,13 +1,13 @@
 {
   "app": {
-    "id": "com.local.3found",
-    "name": "3.found",
-    "packageName": "3-found",
+    "id": "com.local.netvalueradar",
+    "name": "净值雷达",
+    "packageName": "net-value-radar",
     "version": "0.1.0",
-    "description": "自用 macOS 桌面应用",
+    "description": "自用基金净值雷达桌面应用",
     "mode": "personal",
-    "profileMessage": "前后端和桌面端链路已连通",
-    "userAgent": "3.found/0.1.0"
+    "profileMessage": "净值雷达链路已连通",
+    "userAgent": "NetValueRadar/0.1.0"
   },
   "versions": {
     "node": ">=22",

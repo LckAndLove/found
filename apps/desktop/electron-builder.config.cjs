@@ -7,7 +7,7 @@ module.exports = {
   directories: {
     output: appConfig.desktop.releaseDir
   },
-  files: ["dist/**/*", "package.json"],
+  files: ["dist/**/*", "assets/**/*", "package.json"],
   extraResources: [
     {
       from: "../frontend/dist",
@@ -16,6 +16,7 @@ module.exports = {
   ],
   mac: {
     category: appConfig.desktop.macCategory,
+    icon: "assets/icon.icns",
     target: [appConfig.desktop.target]
   }
 };

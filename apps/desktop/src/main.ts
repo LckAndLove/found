@@ -7,6 +7,8 @@ import { appConfig } from "./config";
 let mainWindow: BrowserWindow | null = null;
 let apiServer: Awaited<ReturnType<typeof startApiServer>> | null = null;
 
+app.setName(appConfig.app.name);
+
 function writeLog(message: string, error?: unknown) {
   const line = [
     new Date().toISOString(),
@@ -40,6 +42,11 @@ function getFrontendEntry() {
   return `file://${indexPath}`;
 }
 
+function getWindowIconPath() {
+  const iconPath = path.join(__dirname, "..", "assets", "icon.png");
+  return fs.existsSync(iconPath) ? iconPath : undefined;
+}
+
 async function createMainWindow() {
   mainWindow = new BrowserWindow({
     width: appConfig.desktop.window.width,
@@ -47,6 +54,7 @@ async function createMainWindow() {
     minWidth: appConfig.desktop.window.minWidth,
     minHeight: appConfig.desktop.window.minHeight,
     title: appConfig.app.name,
+    icon: getWindowIconPath(),
     backgroundColor: appConfig.desktop.window.backgroundColor,
     webPreferences: {
       preload: path.join(__dirname, "preload.cjs"),

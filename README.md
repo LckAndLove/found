@@ -1,4 +1,4 @@
-# 3.found
+# 净值雷达
 
 一个自用桌面应用项目，采用前后端分离结构，并通过 Electron 打包为 macOS 应用。
 
@@ -18,4 +18,3 @@ npm run dev
 npm run build
 npm run package:mac
 ```
-

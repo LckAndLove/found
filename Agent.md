@@ -77,7 +77,7 @@
 - 测试命令：当前未建立测试框架，先使用 `npm run check` 做类型检查。
 - 构建命令：`npm run build`。
 - 打包命令：`npm run package:mac` 生成 macOS 应用目录包。
-- 打包产物：`apps/desktop/release/mac-arm64/3.found.app`。
+- 打包产物：`apps/desktop/release/mac-arm64/净值雷达.app`。
 - 桌面端主进程日志：`~/Library/Application Support/@found/desktop/main.log`。
 - 部署方式：当前目标为本地自用 macOS 应用，暂不做远程部署。
 - 目录结构：`apps/backend`、`apps/frontend`、`apps/desktop`、`docs`、`scripts`。
