@@ -524,14 +524,6 @@ function App() {
 
             {/* 3. Action Row */}
             <div className="monitor-actions-row">
-              <div className="action-btns-left">
-                <button className="monitor-action-btn">行情中心</button>
-                <button className="monitor-action-btn disabled" disabled>休市中</button>
-                <button className="monitor-action-btn">编辑</button>
-                <button className="monitor-action-btn">设置</button>
-                <button className="monitor-action-btn">日志</button>
-                <button className="monitor-action-btn primary">打赏</button>
-              </div>
               <button 
                 className="monitor-refresh-btn"
                 onClick={() => {
