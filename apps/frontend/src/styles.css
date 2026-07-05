@@ -1121,10 +1121,12 @@ button:disabled {
 
 .fund-name-cell {
   display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 1px;
+  flex-direction: row;
+  align-items: center;
+  flex-wrap: nowrap;
+  gap: 5px;
   min-width: 0;
+  overflow: hidden;
 }
 
 .fund-name {
@@ -1133,13 +1135,8 @@ button:disabled {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  max-width: 200px;
-}
-
-.fund-code-row {
-  display: flex;
-  align-items: center;
-  gap: 4px;
+  flex: 1 1 0;
+  min-width: 0;
 }
 
 .fund-code {
@@ -1147,6 +1144,7 @@ button:disabled {
   color: var(--text-secondary);
   font-family: Menlo, Monaco, Consolas, monospace;
   white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .font-number {
