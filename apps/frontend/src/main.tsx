@@ -5,15 +5,18 @@ import {
   ApiRequestError,
   getFundDetail,
   getHealth,
+  getIntraday,
   listWatchlist,
   removeWatchlistItem,
   searchFunds,
   type FundDetail,
   type FundSearchItem,
   type FundWatchlistItem,
-  type HealthResponse
+  type HealthResponse,
+  type IntradayResponse
 } from "./api";
 import { appConfig } from "./config";
+import { IntradayChart, HistoryTrendChart } from "./SvgChart";
 import "./styles.css";
 
 type DetailState = {
@@ -26,11 +29,16 @@ function App() {
   const [health, setHealth] = useState<HealthResponse | null>(null);
   const [watchlist, setWatchlist] = useState<FundWatchlistItem[]>([]);
   const [selectedCode, setSelectedCode] = useState<string | null>(null);
+  
   const [details, setDetails] = useState<DetailState>({
     data: {},
     loadingCodes: new Set(),
     errorByCode: {}
   });
+
+  const [intradayData, setIntradayData] = useState<Record<string, IntradayResponse>>({});
+  const [loadingIntraday, setLoadingIntraday] = useState<Set<string>>(new Set());
+
   const [query, setQuery] = useState("");
   const [searchResults, setSearchResults] = useState<FundSearchItem[]>([]);
   const [searching, setSearching] = useState(false);
@@ -50,8 +58,10 @@ function App() {
         setHealth(healthData);
         setWatchlist(watchlistData.items);
         setSelectedCode(watchlistData.items[0]?.code ?? null);
+        
         watchlistData.items.forEach((item) => {
           void loadDetail(item.code);
+          void loadIntraday(item.code);
         });
       })
       .catch((requestError: Error) => {
@@ -116,8 +126,17 @@ function App() {
     };
   }, [query]);
 
+  // Load intraday on selectedCode change if not loaded yet
+  useEffect(() => {
+    if (selectedCode && !intradayData[selectedCode] && !loadingIntraday.has(selectedCode)) {
+      void loadIntraday(selectedCode);
+    }
+  }, [selectedCode]);
+
   const selectedDetail = selectedCode ? details.data[selectedCode] : null;
   const selectedItem = selectedCode ? watchlist.find((item) => item.code === selectedCode) : null;
+  const selectedIntraday = selectedCode ? intradayData[selectedCode] : null;
+  const isSelectedIntradayLoading = selectedCode ? loadingIntraday.has(selectedCode) : false;
 
   async function loadDetail(code: string) {
     setDetails((current) => ({
@@ -142,6 +161,18 @@ function App() {
     }
   }
 
+  async function loadIntraday(code: string) {
+    setLoadingIntraday((current) => new Set(current).add(code));
+    try {
+      const data = await getIntraday(code);
+      setIntradayData((current) => ({ ...current, [code]: data }));
+    } catch {
+      // Fallback silently on intraday load failures
+    } finally {
+      setLoadingIntraday((current) => deleteFromSet(current, code));
+    }
+  }
+
   async function addFund(fund: FundSearchItem) {
     try {
       const item = await addWatchlistItem({ code: fund.code, name: fund.name });
@@ -150,7 +181,12 @@ function App() {
       setMessage(`已添加 ${fund.name}`);
       setQuery("");
       setSearchResults([]);
-      await loadDetail(item.code);
+      
+      // Load both detail and intraday
+      await Promise.all([
+        loadDetail(item.code),
+        loadIntraday(item.code)
+      ]);
     } catch (requestError) {
       setError(formatError(requestError));
     }
@@ -165,8 +201,10 @@ function App() {
         loadingCodes: deleteFromSet(current.loadingCodes, code),
         errorByCode: omitKey(current.errorByCode, code)
       }));
+      setIntradayData((current) => omitKey(current, code));
       setSelectedCode((current) => (current === code ? watchlist.find((item) => item.code !== code)?.code ?? null : current));
-      setMessage("已移除");
+      setMessage("已从自选列表中移除");
+      setTimeout(() => setMessage(null), 3000);
     } catch (requestError) {
       setError(formatError(requestError));
     }
@@ -181,16 +219,16 @@ function App() {
             <h1>基金自选</h1>
           </div>
           <span className="status" data-ok={health?.ok ? "true" : "false"}>
-            {health?.ok ? "已连接" : initializing ? "连接中" : "连接失败"}
+            {health?.ok ? "服务已连接" : initializing ? "服务连接中..." : "服务连接失败"}
           </span>
         </header>
 
         <div className="search-box">
-          <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="搜索基金代码或名称" />
+          <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="搜索基金代码、名称或简拼..." />
           {query.trim() ? (
             <div className="results">
-              {searching ? <p>搜索中...</p> : null}
-              {!searching && searchResults.length === 0 ? <p>暂无结果</p> : null}
+              {searching ? <p>正在搜索...</p> : null}
+              {!searching && searchResults.length === 0 ? <p>未搜到相关基金</p> : null}
               {searchResults.map((fund) => {
                 const added = watchlist.some((item) => item.code === fund.code);
                 return (
@@ -209,9 +247,11 @@ function App() {
 
         <div className="content">
           <aside className="fund-list">
-            {watchlist.length === 0 ? <p className="empty">还没有自选基金</p> : null}
+            {watchlist.length === 0 ? <p className="empty">您的自选列表为空</p> : null}
             {watchlist.map((item) => {
               const detail = details.data[item.code];
+              const rate = detail?.gszzl ?? detail?.zzl;
+              const rateClass = getRateClass(rate);
               return (
                 <button
                   className="fund-row"
@@ -220,7 +260,7 @@ function App() {
                   onClick={() => setSelectedCode(item.code)}
                 >
                   <span>{detail?.name ?? item.name ?? item.code}</span>
-                  <strong>{formatRate(detail?.gszzl ?? detail?.zzl)}</strong>
+                  <strong className={rateClass}>{formatRate(rate)}</strong>
                 </button>
               );
             })}
@@ -229,10 +269,12 @@ function App() {
           <FundSummary
             code={selectedCode}
             detail={selectedDetail}
+            intraday={selectedIntraday}
+            loadingIntraday={isSelectedIntradayLoading}
             fallbackName={selectedItem?.name ?? selectedCode ?? ""}
             loading={selectedCode ? details.loadingCodes.has(selectedCode) : false}
             error={selectedCode ? details.errorByCode[selectedCode] : undefined}
-            onRefresh={selectedCode ? () => void loadDetail(selectedCode) : undefined}
+            onRefresh={selectedCode ? () => { void loadDetail(selectedCode); void loadIntraday(selectedCode); } : undefined}
             onRemove={selectedCode ? () => void removeFund(selectedCode) : undefined}
           />
         </div>
@@ -241,26 +283,73 @@ function App() {
   );
 }
 
+function FundSummarySkeleton() {
+  return (
+    <section className="summary">
+      <div className="summary-head" style={{ marginBottom: "16px" }}>
+        <div style={{ flex: 1 }}>
+          <div className="skeleton skeleton-text" style={{ width: "60px", height: "14px" }}></div>
+          <div className="skeleton skeleton-title" style={{ width: "65%", height: "24px", marginTop: "8px" }}></div>
+        </div>
+        <div className="skeleton skeleton-badge" style={{ width: "85px", height: "36px" }}></div>
+      </div>
+
+      <div className="values" style={{ marginBottom: "20px" }}>
+        <div className="skeleton skeleton-card" style={{ height: "76px" }}></div>
+        <div className="skeleton skeleton-card" style={{ height: "76px" }}></div>
+        <div className="skeleton skeleton-card" style={{ height: "76px" }}></div>
+      </div>
+
+      <div className="tabs-header" style={{ marginBottom: "16px", paddingBottom: "8px" }}>
+        <div className="skeleton skeleton-text" style={{ width: "80px", height: "18px", display: "inline-block", marginRight: "16px" }}></div>
+        <div className="skeleton skeleton-text" style={{ width: "80px", height: "18px", display: "inline-block" }}></div>
+      </div>
+
+      <div className="skeleton skeleton-chart"></div>
+
+      <div className="actions" style={{ marginTop: "auto" }}>
+        <div className="skeleton" style={{ width: "76px", height: "36px", borderRadius: "8px" }}></div>
+        <div className="skeleton" style={{ width: "76px", height: "36px", borderRadius: "8px" }}></div>
+      </div>
+    </section>
+  );
+}
+
 function FundSummary(props: {
   code: string | null;
   detail: FundDetail | null;
+  intraday: IntradayResponse | null;
+  loadingIntraday: boolean;
   fallbackName: string;
   loading: boolean;
   error?: string;
   onRefresh?: () => void;
   onRemove?: () => void;
 }) {
+  const [activeTab, setActiveTab] = useState<"trends" | "holdings">("trends");
+
+  // Keep active tab state reset on fund code change
+  useEffect(() => {
+    setActiveTab("trends");
+  }, [props.code]);
+
   if (!props.code) {
     return (
       <section className="summary empty-summary">
         <h2>选择一只基金</h2>
-        <p>搜索并添加基金后，这里会显示核心净值信息。</p>
+        <p>在左侧列表中选择，或在上方搜索并添加一只自选基金，这里会展示高级图表和持仓明细。</p>
       </section>
     );
   }
 
+  // Display skeleton if loading and we do not have cached details
+  if (props.loading && !props.detail) {
+    return <FundSummarySkeleton />;
+  }
+
   const detail = props.detail;
   const rate = detail?.gszzl ?? detail?.zzl;
+  const rateClass = getRateClass(rate);
 
   return (
     <section className="summary">
@@ -269,7 +358,9 @@ function FundSummary(props: {
           <small>{props.code}</small>
           <h2>{detail?.name ?? props.fallbackName}</h2>
         </div>
-        <strong>{props.loading ? "更新中" : formatRate(rate)}</strong>
+        <strong className={`rate-badge ${rateClass}`}>
+          {props.loading ? "更新中" : formatRate(rate)}
+        </strong>
       </div>
 
       {props.error ? <p className="error">{props.error}</p> : null}
@@ -284,17 +375,100 @@ function FundSummary(props: {
           <dd>{detail?.gsz ?? "--"}</dd>
         </div>
         <div>
-          <dt>日期</dt>
+          <dt>数据时间/净值日</dt>
           <dd>{detail?.gztime ?? detail?.jzrq ?? "--"}</dd>
         </div>
       </dl>
 
+      {detail && (
+        <>
+          <div className="tabs-header">
+            <button
+              className="tab-btn"
+              data-active={activeTab === "trends" ? "true" : "false"}
+              onClick={() => setActiveTab("trends")}
+            >
+              走势分析
+            </button>
+            <button
+              className="tab-btn"
+              data-active={activeTab === "holdings" ? "true" : "false"}
+              onClick={() => setActiveTab("holdings")}
+            >
+              持仓明细
+            </button>
+          </div>
+
+          <div className="tab-content">
+            {activeTab === "trends" ? (
+              <>
+                {props.loadingIntraday && !props.intraday ? (
+                  <div className="skeleton skeleton-chart"></div>
+                ) : (
+                  <IntradayChart data={props.intraday?.items ?? []} />
+                )}
+                <HistoryTrendChart data={detail.historyTrend} />
+              </>
+            ) : (
+              <div className="holdings-panel">
+                <div className="holdings-header">
+                  <span>重仓持股</span>
+                  <span>占比</span>
+                  <span style={{ textAlign: "right" }}>当日涨跌</span>
+                </div>
+                {detail.holdings.length === 0 ? (
+                  <p className="empty" style={{ background: "#fbfcfa", border: "1px dashed var(--border-color)", borderRadius: "12px" }}>
+                    暂无持股明细数据
+                  </p>
+                ) : (
+                  detail.holdings.map((holding) => {
+                    const weightNum = parseFloat(holding.weight);
+                    const changeClass = getRateClass(holding.change);
+                    return (
+                      <div className="holding-row" key={holding.code}>
+                        <div className="holding-meta">
+                          <span className="name">{holding.name}</span>
+                          <span className="code">{holding.code}</span>
+                        </div>
+                        <div className="holding-weight">
+                          <span>{holding.weight}</span>
+                          <div className="weight-bar-bg">
+                            <div
+                              className="weight-bar-fill"
+                              style={{ width: `${Math.min(100, (weightNum || 0) * 6)}%` }}
+                            ></div>
+                          </div>
+                        </div>
+                        <span className={`holding-change ${changeClass}`}>
+                          {holding.change !== null ? formatRate(holding.change) : "--"}
+                        </span>
+                      </div>
+                    );
+                  })
+                )}
+              </div>
+            )}
+          </div>
+        </>
+      )}
+
       <div className="actions">
-        <button onClick={props.onRefresh} disabled={props.loading}>{props.loading ? "刷新中" : "刷新"}</button>
-        <button className="danger" onClick={props.onRemove}>移除</button>
+        <button onClick={props.onRefresh} disabled={props.loading}>
+          {props.loading ? "正在刷新" : "手动刷新"}
+        </button>
+        <button className="danger" onClick={props.onRemove}>
+          移除基金
+        </button>
       </div>
     </section>
   );
+}
+
+function getRateClass(value: number | string | null | undefined): string {
+  if (value === null || value === undefined || value === "") return "flat";
+  const numeric = typeof value === "number" ? value : parseFloat(String(value));
+  if (!Number.isFinite(numeric) || numeric === 0) return "flat";
+  return numeric > 0 ? "up" : "down";
 }
 
 function formatRate(value: number | string | null | undefined) {

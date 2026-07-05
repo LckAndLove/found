@@ -46,6 +46,7 @@ export type FundDataClient = {
   getHoldings(code: string): Promise<FundHolding[]>;
   getHistoryTrend(code: string): Promise<FundHistoryTrend>;
   getNetValue(code: string, date: string): Promise<FundNetValue>;
+  getNetValuesInRange(code: string, startDate: string, endDate: string, limit?: number): Promise<FundNetValue[]>;
   getIntraday(code: string): Promise<IntradayPoint[]>;
   getShanghaiIndexDate(): Promise<string | null>;
 };
@@ -234,6 +235,46 @@ export function createFundDataClient(http: UpstreamHttpClient): FundDataClient {
       const raw = parseScriptVariable(await http.getText(`https://qt.gtimg.cn/q=sh000001&_t=${Date.now()}`), "v_sh000001");
       const parts = raw?.split("~") ?? [];
       return parts[30] ? parts[30].slice(0, 8) : null;
+    },
+
+    async getNetValuesInRange(code, startDate, endDate, limit = 40) {
+      const url = new URL("https://fundf10.eastmoney.com/F10DataApi.aspx");
+      url.searchParams.set("type", "lsjz");
+      url.searchParams.set("code", code);
+      url.searchParams.set("page", "1");
+      url.searchParams.set("per", limit.toString());
+      url.searchParams.set("sdate", startDate);
+      url.searchParams.set("edate", endDate);
+
+      const content = parseApidataContent(await http.getText(url));
+      if (!content || content.includes("暂无数据")) {
+        return [];
+      }
+
+      // Extract rows
+      const tbodyMatch = content.match(/<tbody[\s\S]*?<\/tbody>/i);
+      const tbody = tbodyMatch ? tbodyMatch[0] : content;
+      const rows = tbody.match(/<tr[\s\S]*?<\/tr>/gi) ?? [];
+
+      const results: FundNetValue[] = [];
+      for (const row of rows) {
+        const cells = row.match(/<td[^>]*>([\s\S]*?)<\/td>/gi) ?? [];
+        if (cells.length < 2) continue;
+        const cell0 = cells[0];
+        const cell1 = cells[1];
+        if (!cell0 || !cell1) continue;
+        const dateText = cell0.replace(/<[^>]+>/g, "").trim();
+        const valueText = cell1.replace(/<[^>]+>/g, "").trim();
+
+        const value = valueText ? Number.parseFloat(valueText) : Number.NaN;
+        results.push({
+          code,
+          date: dateText,
+          value: Number.isFinite(value) ? value : null
+        });
+      }
+
+      return results;
     }
   };
 }
@@ -313,11 +354,11 @@ async function attachQuoteChanges(http: UpstreamHttpClient, holdings: FundHoldin
 
 function toTencentQuoteSymbol(code: string) {
   if (/^\d{6}$/.test(code)) {
+    if (code.startsWith("920") || code.startsWith("4") || code.startsWith("8")) {
+      return `s_bj${code}`;
+    }
     if (code.startsWith("6") || code.startsWith("9")) {
       return `s_sh${code}`;
-    }
-    if (code.startsWith("4") || code.startsWith("8")) {
-      return `s_bj${code}`;
     }
     return `s_sz${code}`;
   }

@@ -123,6 +123,19 @@ export async function getFundDetail(code: string) {
   return request<FundDetail>(`/api/funds/${encodeURIComponent(code)}?${params.toString()}`);
 }
 
+export type IntradayResponse = {
+  code: string;
+  items: Array<{
+    time: string;
+    value: number;
+    growth: string;
+  }>;
+};
+
+export async function getIntraday(code: string) {
+  return request<IntradayResponse>(`/api/funds/${encodeURIComponent(code)}/intraday`);
+}
+
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const response = await fetch(`${getApiBaseUrl()}${path}`, init);
 

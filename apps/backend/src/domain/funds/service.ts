@@ -88,26 +88,27 @@ export function createFundService(dataClient: FundDataClient, watchlistRepositor
 
     async getSmartFundNetValue(code, startDate, maxDays = 30) {
       const today = startOfUtcDay(new Date());
-      let current = startOfUtcDay(new Date(`${startDate}T00:00:00.000Z`));
+      const start = startOfUtcDay(new Date(`${startDate}T00:00:00.000Z`));
+      const end = addUtcDays(start, maxDays - 1);
+      const endDateStr = (end > today ? today : end).toISOString().slice(0, 10);
 
-      for (let index = 0; index < maxDays; index += 1) {
-        if (current > today) {
-          break;
-        }
+      // Single range query to avoid up to 30 sequential network requests
+      const list = await dataClient.getNetValuesInRange(code, startDate, endDateStr, maxDays + 10);
 
-        const date = current.toISOString().slice(0, 10);
-        const result = await dataClient.getNetValue(code, date);
-        if (result.value !== null) {
-          return {
-            code,
-            startDate,
-            found: true,
-            date,
-            value: result.value
-          };
-        }
+      // Find the earliest date in chronological order (ascending) that has a valid value
+      const sortedList = [...list]
+        .filter((item) => item.value !== null)
+        .sort((a, b) => a.date.localeCompare(b.date));
 
-        current = addUtcDays(current, 1);
+      if (sortedList.length > 0) {
+        const match = sortedList[0];
+        return {
+          code,
+          startDate,
+          found: true,
+          date: match.date,
+          value: match.value
+        };
       }
 
       return {
