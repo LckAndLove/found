@@ -306,24 +306,7 @@ function App() {
     <main className="app-shell">
       <div className="dashboard-grid">
         <section className="app-card">
-          <div className="search-box">
-            <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="搜索基金代码、名称或简拼..." />
-            {query.trim() ? (
-              <div className="results">
-                {searching ? <p>正在搜索...</p> : null}
-                {!searching && searchResults.length === 0 ? <p>未搜到相关基金</p> : null}
-                {searchResults.map((fund) => {
-                  const added = watchlist.some((item) => item.code === fund.code);
-                  return (
-                    <button key={fund.code} onClick={() => void addFund(fund)} disabled={added}>
-                      <span>{fund.name}</span>
-                      <small>{added ? "已添加" : fund.code}</small>
-                    </button>
-                  );
-                })}
-              </div>
-            ) : null}
-          </div>
+
 
           {message ? <p className="notice">{message}</p> : null}
           {error ? <p className="error">{error}</p> : null}
