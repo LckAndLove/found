@@ -47,6 +47,13 @@ function getWindowIconPath() {
   return fs.existsSync(iconPath) ? iconPath : undefined;
 }
 
+function setDockIcon() {
+  const iconPath = getWindowIconPath();
+  if (process.platform === "darwin" && iconPath) {
+    app.dock?.setIcon(iconPath);
+  }
+}
+
 async function createMainWindow() {
   mainWindow = new BrowserWindow({
     width: appConfig.desktop.window.width,
@@ -69,6 +76,7 @@ async function createMainWindow() {
 app.whenReady().then(async () => {
   try {
     writeLog("应用启动");
+    setDockIcon();
 
     process.env.FOUND_DB_PATH ??= path.join(app.getPath("userData"), appConfig.storage.sqlite.relativePath);
     apiServer = await startApiServer({
