@@ -27,6 +27,17 @@
   box-sizing: border-box;
 }
 
+/* Global Color Rules for Profit & Loss (Red for Up, Green for Down, Black for Flat) */
+.up {
+  color: var(--color-red) !important;
+}
+.down {
+  color: var(--color-green) !important;
+}
+.flat {
+  color: var(--text-primary) !important;
+}
+
 /* Custom Scrollbar Styles for Native Look */
 ::-webkit-scrollbar {
   width: 6px;
