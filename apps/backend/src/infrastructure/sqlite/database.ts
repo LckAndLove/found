@@ -1,6 +1,7 @@
 import { mkdirSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { DatabaseSync } from "node:sqlite";
+import { appConfig } from "../../config.js";
 
 export type SqliteDatabase = {
   path: string;
@@ -15,7 +16,7 @@ export function createSqliteDatabase(path = defaultDatabasePath()): SqliteDataba
   connection.exec(`
     PRAGMA foreign_keys = ON;
     PRAGMA journal_mode = WAL;
-    PRAGMA busy_timeout = 5000;
+    PRAGMA busy_timeout = ${appConfig.storage.sqlite.busyTimeoutMs};
   `);
   migrate(connection);
 
@@ -29,7 +30,7 @@ export function createSqliteDatabase(path = defaultDatabasePath()): SqliteDataba
 }
 
 function defaultDatabasePath() {
-  return process.env.FOUND_DB_PATH ?? join(process.cwd(), "data", "found.sqlite");
+  return process.env.FOUND_DB_PATH ?? join(process.cwd(), appConfig.storage.sqlite.relativePath);
 }
 
 function migrate(connection: DatabaseSync) {

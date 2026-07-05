@@ -1,6 +1,8 @@
 import { contextBridge } from "electron";
+import { appConfig } from "./config";
 
 contextBridge.exposeInMainWorld("foundConfig", {
-  apiBaseUrl: `http://127.0.0.1:${process.env.FOUND_API_PORT ?? 4317}`
+  apiBaseUrl: `http://${appConfig.api.host}:${process.env.FOUND_API_PORT ?? appConfig.api.port}`,
+  appName: appConfig.app.name,
+  appVersion: appConfig.app.version
 });
-

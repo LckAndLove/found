@@ -4,9 +4,9 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "vite --host 127.0.0.1 --port 5173",
+    "dev": "vite",
     "build": "tsc -p tsconfig.json --noEmit && vite build",
-    "preview": "vite preview --host 127.0.0.1 --port 4173",
+    "preview": "vite preview",
     "check": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
@@ -20,4 +20,3 @@
     "@types/react-dom": "^19.1.6"
   }
 }
-

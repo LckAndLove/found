@@ -2,6 +2,7 @@ import { app, BrowserWindow } from "electron";
 import fs from "node:fs";
 import path from "node:path";
 import { startApiServer } from "../../backend/src/server";
+import { appConfig } from "./config";
 
 let mainWindow: BrowserWindow | null = null;
 let apiServer: Awaited<ReturnType<typeof startApiServer>> | null = null;
@@ -41,12 +42,12 @@ function getFrontendEntry() {
 
 async function createMainWindow() {
   mainWindow = new BrowserWindow({
-    width: 1120,
-    height: 760,
-    minWidth: 860,
-    minHeight: 620,
-    title: "3.found",
-    backgroundColor: "#eef1ec",
+    width: appConfig.desktop.window.width,
+    height: appConfig.desktop.window.height,
+    minWidth: appConfig.desktop.window.minWidth,
+    minHeight: appConfig.desktop.window.minHeight,
+    title: appConfig.app.name,
+    backgroundColor: appConfig.desktop.window.backgroundColor,
     webPreferences: {
       preload: path.join(__dirname, "preload.cjs"),
       contextIsolation: true,
@@ -61,9 +62,10 @@ app.whenReady().then(async () => {
   try {
     writeLog("应用启动");
 
-    process.env.FOUND_DB_PATH ??= path.join(app.getPath("userData"), "data", "found.sqlite");
+    process.env.FOUND_DB_PATH ??= path.join(app.getPath("userData"), appConfig.storage.sqlite.relativePath);
     apiServer = await startApiServer({
-      port: Number(process.env.FOUND_API_PORT ?? 4317)
+      host: appConfig.api.host,
+      port: Number(process.env.FOUND_API_PORT ?? appConfig.api.port)
     });
     writeLog(`后端服务已启动：${apiServer.url}`);
 

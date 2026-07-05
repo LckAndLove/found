@@ -1,6 +1,7 @@
 import cors from "cors";
 import express from "express";
 import type { Server } from "node:http";
+import { appConfig } from "./config.js";
 import { createFundService } from "./domain/funds/service.js";
 import { createFundDataClient } from "./infrastructure/fund-data/fundDataClient.js";
 import { createUpstreamHttpClient } from "./infrastructure/http/upstreamHttpClient.js";
@@ -25,7 +26,7 @@ export function createApiApp() {
   const app = express();
   const database = createSqliteDatabase();
   const fundService = createFundService(
-    createFundDataClient(createUpstreamHttpClient()),
+    createFundDataClient(createUpstreamHttpClient({ timeoutMs: appConfig.upstream.timeoutMs })),
     createFundWatchlistRepository(database.connection)
   );
   app.locals.closeDatabase = () => database.close();
@@ -36,7 +37,8 @@ export function createApiApp() {
   app.get("/api/health", (_request, response) => {
     response.json({
       ok: true,
-      name: "3.found",
+      name: appConfig.app.name,
+      version: appConfig.app.version,
       service: "backend",
       storage: {
         sqlite: true
@@ -47,9 +49,10 @@ export function createApiApp() {
 
   app.get("/api/profile", (_request, response) => {
     response.json({
-      appName: "3.found",
-      mode: "personal",
-      message: "前后端和桌面端链路已连通"
+      appName: appConfig.app.name,
+      version: appConfig.app.version,
+      mode: appConfig.app.mode,
+      message: appConfig.app.profileMessage
     });
   });
 
@@ -91,7 +94,11 @@ export function createApiApp() {
     asyncHandler(async (request, response) => {
       const code = requireFundCode(request.params.code);
       const startDate = requireDateString(request.query.startDate, "startDate");
-      const maxDays = optionalInteger(request.query.maxDays, 30, { name: "maxDays", min: 1, max: 60 });
+      const maxDays = optionalInteger(request.query.maxDays, appConfig.funds.smartNetValueDefaultMaxDays, {
+        name: "maxDays",
+        min: 1,
+        max: appConfig.funds.smartNetValueMaxDays
+      });
       response.json(await fundService.getSmartFundNetValue(code, startDate, maxDays));
     })
   );
@@ -139,8 +146,8 @@ export function createApiApp() {
 }
 
 export async function startApiServer(options: ApiServerOptions = {}) {
-  const port = options.port ?? Number(process.env.PORT ?? 4317);
-  const host = options.host ?? process.env.HOST ?? "127.0.0.1";
+  const port = options.port ?? Number(process.env.PORT ?? appConfig.api.port);
+  const host = options.host ?? process.env.HOST ?? appConfig.api.host;
   const app = createApiApp();
 
   const server = await new Promise<Server>((resolve, reject) => {

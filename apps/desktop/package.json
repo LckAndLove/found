@@ -7,34 +7,10 @@
   "type": "module",
   "main": "dist/main.cjs",
   "scripts": {
-    "dev": "npm run build && FOUND_FRONTEND_URL=http://127.0.0.1:5173 electron .",
+    "dev": "node ../../scripts/desktop-dev.mjs",
     "build": "esbuild src/main.ts --bundle --platform=node --format=cjs --external:electron --outfile=dist/main.cjs && esbuild src/preload.ts --bundle --platform=node --format=cjs --external:electron --outfile=dist/preload.cjs",
     "check": "tsc -p tsconfig.json --noEmit",
-    "package:mac": "electron-builder --mac dir"
-  },
-  "build": {
-    "appId": "com.local.3found",
-    "productName": "3.found",
-    "electronVersion": "37.10.3",
-    "directories": {
-      "output": "release"
-    },
-    "files": [
-      "dist/**/*",
-      "package.json"
-    ],
-    "extraResources": [
-      {
-        "from": "../frontend/dist",
-        "to": "frontend"
-      }
-    ],
-    "mac": {
-      "category": "public.app-category.productivity",
-      "target": [
-        "dir"
-      ]
-    }
+    "package:mac": "electron-builder --config electron-builder.config.cjs --mac dir"
   },
   "devDependencies": {
     "@types/node": "^24.0.10"

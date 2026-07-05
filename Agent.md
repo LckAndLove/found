@@ -48,6 +48,7 @@
 - 外部参考项目放在 `references`，该目录只作为本地参考资料，不纳入当前仓库提交。
 - 基金数据 API 契约整理在 `docs/fund-api.swagger.json`，后续实现后端基金接口时优先对照该文档。
 - 后端使用 Node 内置 `node:sqlite` 接入本地 SQLite，默认数据库路径为 `data/found.sqlite`，可用 `FOUND_DB_PATH` 覆盖。
+- 应用级配置集中在 `config/app.config.json`，端口、窗口尺寸、应用名、应用版本、SQLite 相对路径、上游超时和 Electron 打包配置优先从该文件读取。
 
 ## Git 规范
 

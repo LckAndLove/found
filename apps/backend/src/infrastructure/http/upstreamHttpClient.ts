@@ -1,3 +1,4 @@
+import { appConfig } from "../../config.js";
 import { UpstreamError } from "../../shared/errors.js";
 
 export type UpstreamHttpClient = {
@@ -6,7 +7,7 @@ export type UpstreamHttpClient = {
 };
 
 export function createUpstreamHttpClient(options: { timeoutMs?: number } = {}): UpstreamHttpClient {
-  const timeoutMs = options.timeoutMs ?? 8000;
+  const timeoutMs = options.timeoutMs ?? appConfig.upstream.timeoutMs;
 
   async function request(url: string | URL) {
     let response: Response;
@@ -14,7 +15,7 @@ export function createUpstreamHttpClient(options: { timeoutMs?: number } = {}): 
       response = await fetch(url, {
         signal: AbortSignal.timeout(timeoutMs),
         headers: {
-          "User-Agent": "3.found/0.1.0"
+          "User-Agent": appConfig.app.userAgent
         }
       });
     } catch (error) {

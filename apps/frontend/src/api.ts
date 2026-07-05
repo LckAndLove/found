@@ -1,3 +1,5 @@
+import { appConfig } from "./config";
+
 export type ApiErrorBody = {
   error?: {
     code?: string;
@@ -9,6 +11,7 @@ export type ApiErrorBody = {
 export type HealthResponse = {
   ok: boolean;
   name: string;
+  version?: string;
   service: string;
   storage?: {
     sqlite?: boolean;
@@ -76,7 +79,11 @@ export class ApiRequestError extends Error {
 }
 
 export function getApiBaseUrl() {
-  return window.foundConfig?.apiBaseUrl ?? import.meta.env.VITE_API_BASE_URL ?? "";
+  return (
+    window.foundConfig?.apiBaseUrl ??
+    import.meta.env.VITE_API_BASE_URL ??
+    `http://${appConfig.api.host}:${appConfig.api.port}`
+  );
 }
 
 export async function getHealth() {

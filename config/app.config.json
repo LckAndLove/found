@@ -1,0 +1,53 @@
+{
+  "app": {
+    "id": "com.local.3found",
+    "name": "3.found",
+    "packageName": "3-found",
+    "version": "0.1.0",
+    "description": "自用 macOS 桌面应用",
+    "mode": "personal",
+    "profileMessage": "前后端和桌面端链路已连通",
+    "userAgent": "3.found/0.1.0"
+  },
+  "versions": {
+    "node": ">=22",
+    "electron": "37.10.3"
+  },
+  "api": {
+    "host": "127.0.0.1",
+    "port": 4317,
+    "healthPath": "/api/health"
+  },
+  "frontend": {
+    "devHost": "127.0.0.1",
+    "devPort": 5173,
+    "previewPort": 4173,
+    "base": "./"
+  },
+  "desktop": {
+    "window": {
+      "width": 1120,
+      "height": 760,
+      "minWidth": 860,
+      "minHeight": 620,
+      "backgroundColor": "#f5f6f3"
+    },
+    "releaseDir": "release",
+    "macCategory": "public.app-category.productivity",
+    "target": "dir"
+  },
+  "storage": {
+    "sqlite": {
+      "relativePath": "data/found.sqlite",
+      "busyTimeoutMs": 5000
+    }
+  },
+  "upstream": {
+    "timeoutMs": 8000
+  },
+  "funds": {
+    "smartNetValueDefaultMaxDays": 30,
+    "smartNetValueMaxDays": 60,
+    "searchResultLimit": 5
+  }
+}

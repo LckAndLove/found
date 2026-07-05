@@ -7,8 +7,8 @@
     "apps/*"
   ],
   "scripts": {
-    "dev": "concurrently -k -n backend,frontend,desktop -c blue,green,magenta \"npm run dev -w @found/backend\" \"npm run dev -w @found/frontend\" \"wait-on tcp:4317 tcp:5173 && npm run dev -w @found/desktop\"",
-    "dev:web": "concurrently -k -n backend,frontend -c blue,green \"npm run dev -w @found/backend\" \"npm run dev -w @found/frontend\"",
+    "dev": "node scripts/dev.mjs",
+    "dev:web": "node scripts/dev.mjs --web",
     "build": "npm run build -w @found/backend && npm run build -w @found/frontend && npm run build -w @found/desktop",
     "package:mac": "npm run build && npm run package:mac -w @found/desktop",
     "check": "npm run check -w @found/backend && npm run check -w @found/frontend && npm run check -w @found/desktop"
