@@ -49,6 +49,7 @@ export type FundDataClient = {
   getNetValuesInRange(code: string, startDate: string, endDate: string, limit?: number): Promise<FundNetValue[]>;
   getIntraday(code: string): Promise<{ date: string | null; items: IntradayPoint[] }>;
   getShanghaiIndexDate(): Promise<string | null>;
+  getMarketIndices(): Promise<Array<{ name: string; value: number; change: number; ratio: number }>>;
 };
 
 export function createFundDataClient(http: UpstreamHttpClient): FundDataClient {
@@ -239,6 +240,25 @@ export function createFundDataClient(http: UpstreamHttpClient): FundDataClient {
       const raw = parseScriptVariable(await http.getText(`https://qt.gtimg.cn/q=sh000001&_t=${Date.now()}`), "v_sh000001");
       const parts = raw?.split("~") ?? [];
       return parts[30] ? parts[30].slice(0, 8) : null;
+    },
+
+    async getMarketIndices() {
+      const raw = await http.getText(`https://qt.gtimg.cn/q=s_sh000001,s_sz399300,s_sz399001,s_sz399006,s_sh688000&_t=${Date.now()}`);
+      const lines = raw.split("\n").filter(Boolean);
+      const indices = lines.map((line) => {
+        const eqIdx = line.indexOf("=");
+        if (eqIdx === -1) return null;
+        const valStr = line.slice(eqIdx + 1).replace(/"/g, "").replace(/;/g, "").trim();
+        const parts = valStr.split("~");
+        if (parts.length < 5) return null;
+        return {
+          name: parts[1],
+          value: parseFloat(parts[2]),
+          change: parseFloat(parts[3]),
+          ratio: parseFloat(parts[4])
+        };
+      }).filter((item): item is { name: string; value: number; change: number; ratio: number } => Boolean(item));
+      return indices;
     },
 
     async getNetValuesInRange(code, startDate, endDate, limit = 40) {

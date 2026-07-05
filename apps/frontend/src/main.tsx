@@ -10,11 +10,13 @@ import {
   removeWatchlistItem,
   updateWatchlistItemHoldings,
   searchFunds,
+  getMarketIndices,
   type FundDetail,
   type FundSearchItem,
   type FundWatchlistItem,
   type HealthResponse,
-  type IntradayResponse
+  type IntradayResponse,
+  type MarketIndex
 } from "./api";
 import { appConfig } from "./config";
 import { IntradayChart, HistoryTrendChart } from "./SvgChart";
@@ -31,6 +33,7 @@ function App() {
   const [watchlist, setWatchlist] = useState<FundWatchlistItem[]>([]);
   const [selectedCode, setSelectedCode] = useState<string | null>(null);
   const [editingCode, setEditingCode] = useState<string | null>(null);
+  const [indices, setIndices] = useState<MarketIndex[]>([]);
   
   const [details, setDetails] = useState<DetailState>({
     data: {},
@@ -99,6 +102,23 @@ function App() {
 
     return () => clearInterval(interval);
   }, [watchlist]);
+
+  // Load market indices
+  const loadIndices = () => {
+    getMarketIndices()
+      .then((data) => setIndices(data))
+      .catch((err) => console.error("加载指数失败", err));
+  };
+
+  useEffect(() => {
+    loadIndices();
+    const interval = setInterval(() => {
+      if (isTradingTime()) {
+        loadIndices();
+      }
+    }, 60000);
+    return () => clearInterval(interval);
+  }, []);
 
 
 
@@ -301,81 +321,159 @@ function App() {
 
   const totalGainLoss = totalValue - totalCost;
   const totalReturnRate = totalCost > 0 ? (totalGainLoss / totalCost) * 100 : 0;
+  const yesterdayTotalValue = totalValue - totalTodayChange;
+  const dailyChangeRate = yesterdayTotalValue > 0 ? (totalTodayChange / yesterdayTotalValue) * 100 : 0;
 
   return (
     <main className="app-shell">
       <div className="dashboard-grid">
         <section className="app-card">
-
+          {/* 1. Market Indices Bar */}
+          <div className="market-indices-bar">
+            {indices.map((idx, index) => {
+              const changeClass = getRateClass(idx.change);
+              return (
+                <div key={index} className="index-item">
+                  <span className="index-name">{idx.name}</span>
+                  <span className={`index-value ${changeClass}`}>{idx.value.toFixed(2)}</span>
+                  <div className="index-change-row">
+                    <span className={changeClass}>{idx.change > 0 ? "+" : ""}{idx.change.toFixed(2)}</span>
+                    <span className={changeClass}>{idx.ratio > 0 ? "+" : ""}{idx.ratio.toFixed(2)}%</span>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
 
           {message ? <p className="notice">{message}</p> : null}
           {error ? <p className="error">{error}</p> : null}
 
-          <div className="content">
-            <aside className="fund-list">
-              {hasHoldings && (
-                <div className="portfolio-card">
-                  <span className="label">资产总值 (估算)</span>
-                  <span className="value">¥ {totalValue.toLocaleString("zh-CN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-                  <div className="row">
-                    <div className="row-item">
-                      <small style={{ color: "var(--text-secondary)", fontSize: "0.7rem", fontWeight: "700" }}>今日盈亏</small>
-                      <span className={getRateClass(totalTodayChange)}>
-                        {totalTodayChange > 0 ? "+" : ""}{totalTodayChange.toFixed(2)} 元
-                      </span>
-                    </div>
-                    <div className="row-item" style={{ alignItems: "flex-end" }}>
-                      <small style={{ color: "var(--text-secondary)", fontSize: "0.7rem", fontWeight: "700" }}>累计盈亏</small>
-                      <span className={getRateClass(totalGainLoss)}>
-                        {totalGainLoss > 0 ? "+" : ""}{totalGainLoss.toFixed(2)} 元 ({totalReturnRate > 0 ? "+" : ""}{totalReturnRate.toFixed(2)}%)
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              )}
-              
-              {watchlist.length === 0 ? <p className="empty">您的自选列表为空</p> : null}
-              {watchlist.map((item) => {
-                const detail = details.data[item.code];
-                const rate = todayIsTrading ? (detail?.gszzl ?? detail?.zzl) : detail?.zzl;
-                const rateClass = getRateClass(rate);
-                return (
-                  <button
-                    className="fund-row"
-                    data-active={selectedCode === item.code ? "true" : "false"}
-                    key={item.code}
-                    onClick={() => {
-                      setSelectedCode(item.code);
-                      setEditingCode(null);
-                    }}
-                  >
-                    <div className="fund-row-name-container">
-                      <span className="fund-row-name-text">{detail?.name ?? item.name ?? item.code}</span>
-                      {isFundSuspended(item.code) && <span className="suspended-badge-sidebar">停申</span>}
-                    </div>
-                    <strong className={rateClass}>{formatRate(rate)}</strong>
-                  </button>
-                );
-              })}
-            </aside>
+          {/* 2. Fund Table */}
+          <div className="content fund-table-container">
+            <table className="fund-monitor-table">
+              <thead>
+                <tr>
+                  <th style={{ width: "32px", textAlign: "center" }}>
+                    <input type="checkbox" defaultChecked disabled />
+                  </th>
+                  <th>基金名称 ({watchlist.length})</th>
+                  <th style={{ textAlign: "right" }}>估算净值</th>
+                  <th style={{ textAlign: "right" }}>持有收益</th>
+                  <th style={{ textAlign: "right" }}>持有收益率</th>
+                  <th style={{ textAlign: "right" }}>涨跌幅</th>
+                  <th style={{ textAlign: "right" }}>估算收益</th>
+                  <th style={{ textAlign: "center" }}>更新时间</th>
+                </tr>
+              </thead>
+              <tbody>
+                {watchlist.map((item) => {
+                  const detail = details.data[item.code];
+                  const shares = item.holdingShares || 0;
+                  const cost = item.costPrice || 0;
+                  const dwjz = detail?.dwjz ? parseFloat(detail.dwjz) : 0;
+                  const gszzlVal = detail?.gszzl !== null && detail?.gszzl !== undefined
+                    ? (typeof detail.gszzl === "string" ? parseFloat(detail.gszzl) : detail.gszzl)
+                    : null;
+                  
+                  const rate = todayIsTrading ? (gszzlVal ?? detail?.zzl) : detail?.zzl;
+                  const rateClass = getRateClass(rate);
+                  
+                  const estGsz = todayIsTrading
+                    ? (gszzlVal !== null ? dwjz * (1 + gszzlVal / 100) : (detail?.gsz ? parseFloat(detail.gsz) : dwjz))
+                    : dwjz;
+                    
+                  const holdingProfit = shares * (dwjz - cost);
+                  const holdingProfitRate = cost > 0 ? ((dwjz - cost) / cost) * 100 : 0;
+                  
+                  const estTodayProfit = todayIsTrading
+                    ? (gszzlVal !== null ? shares * dwjz * (gszzlVal / 100) : (detail?.gsz ? shares * (parseFloat(detail.gsz) - dwjz) : 0))
+                    : 0;
+                    
+                  const updateTime = detail?.gztime 
+                    ? detail.gztime.split(" ")[0].slice(5) // e.g. "07-03"
+                    : detail?.jzrq 
+                    ? detail.jzrq.slice(5) 
+                    : "--";
 
-            <FundSummary
-              code={selectedCode}
-              detail={selectedDetail}
-              intraday={selectedIntraday}
-              loadingIntraday={isSelectedIntradayLoading}
-              fallbackName={selectedItem?.name ?? selectedCode ?? ""}
-              loading={selectedCode ? details.loadingCodes.has(selectedCode) : false}
-              error={selectedCode ? details.errorByCode[selectedCode] : undefined}
-              holdingShares={selectedItem?.holdingShares ?? null}
-              costPrice={selectedItem?.costPrice ?? null}
-              isEditing={selectedCode ? editingCode === selectedCode : false}
-              onStartEdit={selectedCode ? () => setEditingCode(selectedCode) : () => {}}
-              onCancelEdit={() => setEditingCode(null)}
-              onSaveHoldings={selectedCode ? (shares, cost) => saveHoldings(selectedCode, shares, cost) : undefined}
-              onRefresh={selectedCode ? () => { void loadDetail(selectedCode); void loadIntraday(selectedCode); } : undefined}
-              onRemove={selectedCode ? () => void removeFund(selectedCode) : undefined}
-            />
+                  return (
+                    <tr key={item.code}>
+                      <td style={{ textAlign: "center" }}>
+                        <input type="checkbox" defaultChecked disabled />
+                      </td>
+                      <td>
+                        <div className="fund-name-cell">
+                          <span className="fund-name">
+                            {detail?.name ?? item.name ?? "加载中..."}
+                            {isFundSuspended(item.code) && <span className="suspended-badge-sidebar" style={{ marginLeft: "6px" }}>停申</span>}
+                          </span>
+                        </div>
+                      </td>
+                      <td style={{ textAlign: "right" }} className="flat font-number">
+                        {todayIsTrading ? (detail?.gsz ?? "--") : dwjz.toFixed(4)}
+                      </td>
+                      <td style={{ textAlign: "right" }} className={`${getRateClass(holdingProfit)} font-number`}>
+                        {holdingProfit > 0 ? "+" : ""}{holdingProfit.toFixed(2)}
+                      </td>
+                      <td style={{ textAlign: "right" }} className={`${getRateClass(holdingProfitRate)} font-number`}>
+                        {holdingProfitRate > 0 ? "+" : ""}{holdingProfitRate.toFixed(2)}%
+                      </td>
+                      <td style={{ textAlign: "right" }} className={`${rateClass} font-number`}>
+                        {formatRate(rate)}
+                      </td>
+                      <td style={{ textAlign: "right" }} className={`${getRateClass(estTodayProfit)} font-number`}>
+                        {estTodayProfit > 0 ? "+" : ""}{estTodayProfit.toFixed(2)}
+                      </td>
+                      <td style={{ textAlign: "center" }} className="flat font-number">
+                        {updateTime}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+
+          {/* 3. Action Row */}
+          <div className="monitor-actions-row">
+            <div className="action-btns-left">
+              <button className="monitor-action-btn">行情中心</button>
+              <button className="monitor-action-btn disabled" disabled>休市中</button>
+              <button className="monitor-action-btn">编辑</button>
+              <button className="monitor-action-btn">设置</button>
+              <button className="monitor-action-btn">日志</button>
+              <button className="monitor-action-btn primary">打赏</button>
+            </div>
+            <button 
+              className="monitor-refresh-btn"
+              onClick={() => {
+                watchlist.forEach((item) => {
+                  void loadDetail(item.code);
+                  void loadIntraday(item.code);
+                });
+                loadIndices();
+              }}
+            >
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor">
+                <path d="M17.65 6.35A7.958 7.958 0 0 0 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08A5.99 5.99 0 0 1 12 18c-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/>
+              </svg>
+            </button>
+          </div>
+
+          {/* 4. Summary Bottom Bar */}
+          <div className="monitor-summary-bar">
+            <div className="summary-item total-box">
+              总金额:<span className="val-text">¥ {totalValue.toLocaleString("zh-CN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+            </div>
+            <div className={`summary-item today-box ${getRateClass(totalTodayChange)}`}>
+              日收益:<span className={`val-text ${getRateClass(totalTodayChange)}`}>
+                {totalTodayChange > 0 ? "+" : ""}{totalTodayChange.toFixed(2)}({totalTodayChange >= 0 ? "+" : ""}{dailyChangeRate.toFixed(2)}%)
+              </span>
+            </div>
+            <div className={`summary-item holding-box ${getRateClass(totalGainLoss)}`}>
+              持有收益:<span className={`val-text ${getRateClass(totalGainLoss)}`}>
+                {totalGainLoss > 0 ? "+" : ""}{totalGainLoss.toFixed(2)}({totalReturnRate >= 0 ? "+" : ""}{totalReturnRate.toFixed(2)}%)
+              </span>
+            </div>
           </div>
         </section>
 

@@ -151,6 +151,13 @@ export function createApiApp() {
     })
   );
 
+  app.get(
+    "/api/market/indices",
+    asyncHandler(async (_request, response) => {
+      response.json(await fundService.getMarketIndices());
+    })
+  );
+
   app.use(errorHandler);
 
   return app;

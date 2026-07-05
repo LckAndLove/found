@@ -1020,3 +1020,260 @@ button:disabled {
   align-items: center;
   line-height: 1.2;
 }
+
+/* 1. Market Indices Bar */
+.market-indices-bar {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 8px;
+  padding: 8px 12px;
+  background: var(--bg-hover);
+  border-radius: 12px;
+  margin-bottom: 8px;
+}
+
+.index-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 2px;
+}
+
+.index-name {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.index-value {
+  font-size: 1.1rem;
+  font-weight: 800;
+  line-height: 1.2;
+}
+
+.index-value.up {
+  color: var(--color-red);
+}
+
+.index-value.down {
+  color: var(--color-green);
+}
+
+.index-value.flat {
+  color: var(--text-primary);
+}
+
+.index-change-row {
+  display: flex;
+  gap: 6px;
+  font-size: 0.7rem;
+  font-weight: 700;
+}
+
+.index-change-row span.up {
+  color: var(--color-red);
+}
+
+.index-change-row span.down {
+  color: var(--color-green);
+}
+
+/* 2. Fund Monitor Table Styles */
+.fund-table-container {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  margin-bottom: 8px;
+}
+
+.fund-monitor-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.8rem;
+  text-align: left;
+}
+
+.fund-monitor-table th {
+  position: sticky;
+  top: 0;
+  background: var(--bg-card);
+  padding: 6px 8px;
+  font-weight: 700;
+  color: var(--text-primary);
+  border-bottom: 1.5px solid var(--border-color);
+  z-index: 1;
+  white-space: nowrap;
+}
+
+.fund-monitor-table td {
+  padding: 6px 8px;
+  border-bottom: 1px solid var(--border-color);
+  vertical-align: middle;
+}
+
+.fund-monitor-table tr:hover {
+  background: var(--bg-hover);
+}
+
+.fund-name-cell {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+}
+
+.fund-name {
+  font-weight: 700;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.font-number {
+  font-family: Menlo, Monaco, Consolas, "Courier New", monospace;
+  font-weight: 700;
+  font-size: 0.8rem;
+}
+
+.font-number.up {
+  color: var(--color-red);
+}
+
+.font-number.down {
+  color: var(--color-green);
+}
+
+.font-number.flat {
+  color: var(--text-primary);
+}
+
+/* 3. Bottom Action Controls */
+.monitor-actions-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 0;
+  border-top: 1px solid var(--border-color);
+  margin-bottom: 4px;
+}
+
+.action-btns-left {
+  display: flex;
+  gap: 6px;
+}
+
+.monitor-action-btn {
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: 6px;
+  border: 1px solid var(--border-color);
+  background: var(--bg-card);
+  color: var(--text-primary);
+  transition: all 0.15s ease;
+}
+
+.monitor-action-btn:hover:not(:disabled) {
+  background: var(--bg-hover);
+  border-color: var(--text-primary);
+}
+
+.monitor-action-btn.disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.monitor-action-btn.primary {
+  background: rgba(66, 133, 244, 0.08);
+  color: #4285f4;
+  border-color: rgba(66, 133, 244, 0.3);
+}
+
+.monitor-action-btn.primary:hover {
+  background: rgba(66, 133, 244, 0.15);
+}
+
+.monitor-refresh-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  border: 1px solid var(--border-color);
+  background: var(--bg-card);
+  color: var(--text-secondary);
+  transition: all 0.15s ease;
+}
+
+.monitor-refresh-btn:hover {
+  color: var(--text-primary);
+  border-color: var(--text-primary);
+  background: var(--bg-hover);
+}
+
+/* 4. Bottom Summary Outline Boxes */
+.monitor-summary-bar {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  padding: 4px 0;
+}
+
+.monitor-summary-bar .summary-item {
+  font-size: 0.76rem;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: 4px;
+  border: 1px solid transparent;
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.monitor-summary-bar .summary-item.total-box {
+  border-color: var(--color-red);
+  color: var(--color-red);
+  background: var(--color-red-light);
+}
+
+.monitor-summary-bar .summary-item.today-box.up {
+  border-color: var(--color-red);
+  color: var(--color-red);
+  background: var(--color-red-light);
+}
+
+.monitor-summary-bar .summary-item.today-box.down {
+  border-color: var(--color-green);
+  color: var(--color-green);
+  background: var(--color-green-light);
+}
+
+.monitor-summary-bar .summary-item.today-box.flat {
+  border-color: var(--border-color);
+  color: var(--text-primary);
+  background: var(--bg-hover);
+}
+
+.monitor-summary-bar .summary-item.holding-box.up {
+  border-color: var(--color-red);
+  color: var(--color-red);
+  background: var(--color-red-light);
+}
+
+.monitor-summary-bar .summary-item.holding-box.down {
+  border-color: var(--color-green);
+  color: var(--color-green);
+  background: var(--color-green-light);
+}
+
+.monitor-summary-bar .summary-item.holding-box.flat {
+  border-color: var(--border-color);
+  color: var(--text-primary);
+  background: var(--bg-hover);
+}
+
+.monitor-summary-bar .val-text {
+  font-weight: 800;
+}

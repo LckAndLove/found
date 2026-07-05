@@ -149,6 +149,17 @@ export async function getIntraday(code: string) {
   return request<IntradayResponse>(`/api/funds/${encodeURIComponent(code)}/intraday`);
 }
 
+export type MarketIndex = {
+  name: string;
+  value: number;
+  change: number;
+  ratio: number;
+};
+
+export async function getMarketIndices() {
+  return request<MarketIndex[]>("/api/market/indices");
+}
+
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const response = await fetch(`${getApiBaseUrl()}${path}`, init);
 
