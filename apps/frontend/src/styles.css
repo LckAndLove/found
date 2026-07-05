@@ -27,6 +27,22 @@
   box-sizing: border-box;
 }
 
+/* Custom Scrollbar Styles for Native Look */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.12);
+  border-radius: 99px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.24);
+}
+
 body {
   min-width: 320px;
   min-height: 100vh;

@@ -276,9 +276,15 @@ function App() {
     if (shares && shares > 0) {
       hasHoldings = true;
       const dwjzVal = detail?.dwjz ? parseFloat(detail.dwjz) : 0;
+      const gszVal = detail?.gsz ? parseFloat(detail.gsz) : dwjzVal;
       const costVal = item.costPrice || 0;
 
-      totalValue += shares * dwjzVal;
+      const gszzl = typeof detail?.gszzl === "number" ? detail.gszzl : null;
+      const estGsz = todayIsTrading
+        ? (gszzl !== null ? dwjzVal * (1 + gszzl / 100) : gszVal)
+        : dwjzVal;
+
+      totalValue += shares * estGsz;
       totalCost += shares * costVal;
       
       if (todayIsTrading && detail) {
