@@ -31,7 +31,6 @@ function App() {
   const [watchlist, setWatchlist] = useState<FundWatchlistItem[]>([]);
   const [selectedCode, setSelectedCode] = useState<string | null>(null);
   const [editingCode, setEditingCode] = useState<string | null>(null);
-  const [autoRefresh, setAutoRefresh] = useState(true);
   
   const [details, setDetails] = useState<DetailState>({
     data: {},
@@ -83,21 +82,23 @@ function App() {
     };
   }, []);
 
-  // Auto-refresh interval (60 seconds)
+  // Auto-refresh interval (60 seconds, active only during China stock market trading hours)
   useEffect(() => {
-    if (!autoRefresh || watchlist.length === 0) {
+    if (watchlist.length === 0) {
       return;
     }
 
     const interval = setInterval(() => {
-      watchlist.forEach((item) => {
-        void loadDetail(item.code);
-        void loadIntraday(item.code);
-      });
+      if (isTradingTime()) {
+        watchlist.forEach((item) => {
+          void loadDetail(item.code);
+          void loadIntraday(item.code);
+        });
+      }
     }, 60000);
 
     return () => clearInterval(interval);
-  }, [autoRefresh, watchlist]);
+  }, [watchlist]);
 
   useEffect(() => {
     const keyword = query.trim();
@@ -297,19 +298,6 @@ function App() {
         <header className="topbar">
           <div>
             <h1>基金自选</h1>
-          </div>
-          <div className="topbar-actions">
-            <label className="auto-refresh-toggle">
-              <input
-                type="checkbox"
-                checked={autoRefresh}
-                onChange={(e) => setAutoRefresh(e.target.checked)}
-              />
-              <span>自动刷新 (60s)</span>
-            </label>
-            <span className="status" data-ok={health?.ok ? "true" : "false"}>
-              {health?.ok ? "服务已连接" : initializing ? "服务连接中..." : "服务连接失败"}
-            </span>
           </div>
         </header>
 
@@ -713,6 +701,55 @@ function FundSummary(props: {
       </div>
     </section>
   );
+}
+
+function isTradingTime(date: Date = new Date()): boolean {
+  const formatter = new Intl.DateTimeFormat("zh-CN", {
+    timeZone: "Asia/Shanghai",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hour12: false
+  });
+  const parts = formatter.formatToParts(date);
+  const findPart = (type: string) => parseInt(parts.find((p) => p.type === type)?.value || "0", 10);
+  
+  const year = findPart("year");
+  const month = findPart("month");
+  const day = findPart("day");
+  const hour = findPart("hour");
+  const minute = findPart("minute");
+  
+  const dayOfWeek = date.toLocaleString("en-US", { timeZone: "Asia/Shanghai", weekday: "short" });
+  
+  if (dayOfWeek === "Sat" || dayOfWeek === "Sun") {
+    return false;
+  }
+
+  if (year === 2026) {
+    const dateStr = `${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+    const holidays = [
+      "01-01", "01-02",
+      "02-16", "02-17", "02-18", "02-19", "02-20", "02-23",
+      "04-06",
+      "05-01", "05-04", "05-05",
+      "06-19",
+      "09-25",
+      "10-01", "10-02", "10-05", "10-06", "10-07"
+    ];
+    if (holidays.includes(dateStr)) {
+      return false;
+    }
+  }
+
+  const timeInMinutes = hour * 60 + minute;
+  const isMorning = timeInMinutes >= 9 * 60 + 30 && timeInMinutes <= 11 * 60 + 30;
+  const isAfternoon = timeInMinutes >= 13 * 60 && timeInMinutes <= 15 * 60;
+  
+  return isMorning || isAfternoon;
 }
 
 function getRateClass(value: number | string | null | undefined): string {
