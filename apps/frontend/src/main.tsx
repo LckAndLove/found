@@ -360,6 +360,7 @@ function App() {
                     </th>
                     <th>基金名称 ({watchlist.length})</th>
                     <th style={{ textAlign: "right" }}>估算净值</th>
+                    <th style={{ textAlign: "right" }}>成本</th>
                     <th style={{ textAlign: "right" }}>持有收益</th>
                     <th style={{ textAlign: "right" }}>持有收益率</th>
                     <th style={{ textAlign: "right" }}>涨跌幅</th>
@@ -412,6 +413,9 @@ function App() {
                         </td>
                         <td style={{ textAlign: "right" }} className="flat font-number">
                           {todayIsTrading ? (detail?.gsz ?? "--") : dwjz.toFixed(4)}
+                        </td>
+                        <td style={{ textAlign: "right" }} className="flat font-number">
+                          {cost > 0 ? cost.toFixed(4) : "--"}
                         </td>
                         <td style={{ textAlign: "right" }} className={`${getRateClass(holdingProfit)} font-number`}>
                           {holdingProfit > 0 ? "+" : ""}{holdingProfit.toFixed(2)}
