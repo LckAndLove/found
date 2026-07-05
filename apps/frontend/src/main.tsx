@@ -297,11 +297,7 @@ function App() {
   return (
     <main className="app-shell">
       <section className="app-card">
-        <header className="topbar">
-          <div>
-            <h1>基金自选</h1>
-          </div>
-        </header>
+
 
         <div className="search-box">
           <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="搜索基金代码、名称或简拼..." />
