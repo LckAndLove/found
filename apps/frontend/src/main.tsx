@@ -236,16 +236,23 @@ function App() {
 
   watchlist.forEach((item) => {
     const detail = details.data[item.code];
-    if (item.holdingShares && item.holdingShares > 0) {
+    const shares = item.holdingShares;
+    if (shares && shares > 0) {
       hasHoldings = true;
       const dwjzVal = detail?.dwjz ? parseFloat(detail.dwjz) : 0;
-      const gszVal = detail?.gsz ? parseFloat(detail.gsz) : dwjzVal;
       const costVal = item.costPrice || 0;
 
-      totalValue += item.holdingShares * dwjzVal;
-      totalCost += item.holdingShares * costVal;
-      if (detail?.gsz) {
-        totalTodayChange += item.holdingShares * (gszVal - dwjzVal);
+      totalValue += shares * dwjzVal;
+      totalCost += shares * costVal;
+      
+      if (detail) {
+        const gszzl = typeof detail.gszzl === "number" ? detail.gszzl : null;
+        if (gszzl !== null) {
+          totalTodayChange += shares * dwjzVal * (gszzl / 100);
+        } else if (detail.gsz) {
+          const gszVal = parseFloat(detail.gsz);
+          totalTodayChange += shares * (gszVal - dwjzVal);
+        }
       }
     }
   });
@@ -434,9 +441,24 @@ function FundSummary(props: {
   const sharesNum = props.holdingShares || 0;
 
   const currentValue = sharesNum * dwjzNum;
-  const estCurrentValue = sharesNum * gszNum;
+  
+  // Resolve EastMoney stale gsz base price discrepancy using gszzl rate
+  const gszzl = typeof detail?.gszzl === "number" ? detail.gszzl : null;
+  const estGsz =
+    gszzl !== null
+      ? dwjzNum * (1 + gszzl / 100)
+      : gszNum;
+
+  const estCurrentValue = sharesNum * estGsz;
   const totalProfit = sharesNum * (dwjzNum - costNum);
-  const estTodayProfit = detail?.gsz ? sharesNum * (gszNum - dwjzNum) : 0;
+  
+  const estTodayProfit =
+    gszzl !== null
+      ? sharesNum * dwjzNum * (gszzl / 100)
+      : detail?.gsz
+      ? sharesNum * (gszNum - dwjzNum)
+      : 0;
+
   const totalReturn = costNum > 0 ? (totalProfit / (sharesNum * costNum)) * 100 : 0;
 
   const handleSave = () => {
@@ -477,7 +499,9 @@ function FundSummary(props: {
           <div>
             <dt>今日预估盈亏</dt>
             <dd className={getRateClass(estTodayProfit)}>
-              {detail?.gsz ? `${estTodayProfit >= 0 ? "+" : ""}${estTodayProfit.toFixed(2)} 元` : "--"}
+              {(detail?.gszzl !== null && detail?.gszzl !== undefined) || detail?.gsz
+                ? `${estTodayProfit >= 0 ? "+" : ""}${estTodayProfit.toFixed(2)} 元`
+                : "--"}
             </dd>
           </div>
           <div>
