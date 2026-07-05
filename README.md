@@ -17,4 +17,6 @@ npm install
 npm run dev
 npm run build
 npm run package:mac
+npm run package:win
+npm run package:win:arm64
 ```

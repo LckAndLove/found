@@ -7,9 +7,12 @@ import appConfig from "../config/app.config.json" with { type: "json" };
 const repoRoot = dirname(dirname(fileURLToPath(import.meta.url)));
 const desktopRoot = join(repoRoot, "apps", "desktop");
 const electronAppContents = join(repoRoot, "node_modules", "electron", "dist", "Electron.app", "Contents");
+const releaseProductName = `${appConfig.app.name}-${appConfig.app.version}`;
+const releaseApp = join(desktopRoot, appConfig.desktop.releaseDir, "mac-arm64", `${releaseProductName}.app`);
+const releaseExecutable = join(releaseApp, "Contents", "MacOS", releaseProductName);
 
-function run(command, args) {
-  const result = spawn(command, args, { stdio: "inherit" });
+function run(command, args, cwd = repoRoot) {
+  const result = spawn(command, args, { cwd, stdio: "inherit" });
   return new Promise((resolve, reject) => {
     result.on("error", reject);
     result.on("exit", (code) => {
@@ -60,11 +63,14 @@ build.on("exit", async (code) => {
 
   try {
     await syncDevElectronBranding();
+    await run("npx", ["electron-builder", "--config", "electron-builder.config.cjs", "--mac", "dir"], desktopRoot);
   } catch (error) {
     console.warn("同步开发模式应用名称和图标失败，将继续启动 Electron：", error);
   }
 
-  const electron = spawn("npm", ["exec", "--", "electron", "."], {
+  const executable = existsSync(releaseExecutable) ? releaseExecutable : "electron";
+  const args = existsSync(releaseExecutable) ? [] : ["."];
+  const electron = spawn(executable, args, {
     cwd: desktopRoot,
     env: {
       ...process.env,

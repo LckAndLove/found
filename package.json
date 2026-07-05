@@ -11,6 +11,8 @@
     "dev:web": "node scripts/dev.mjs --web",
     "build": "npm run build -w @found/backend && npm run build -w @found/frontend && npm run build -w @found/desktop",
     "package:mac": "npm run build && npm run package:mac -w @found/desktop",
+    "package:win": "npm run build && npm run package:win -w @found/desktop",
+    "package:win:arm64": "npm run build && npm run package:win:arm64 -w @found/desktop",
     "check": "npm run check -w @found/backend && npm run check -w @found/frontend && npm run check -w @found/desktop"
   },
   "devDependencies": {
