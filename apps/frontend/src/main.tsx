@@ -34,6 +34,8 @@ function App() {
   const [selectedCode, setSelectedCode] = useState<string | null>(null);
   const [editingCode, setEditingCode] = useState<string | null>(null);
   const [indices, setIndices] = useState<MarketIndex[]>([]);
+  const [sortKey, setSortKey] = useState<string | null>(null);
+  const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
   
   const [details, setDetails] = useState<DetailState>({
     data: {},
@@ -326,6 +328,60 @@ function App() {
   const yesterdayTotalValue = totalValue - totalTodayChange;
   const dailyChangeRate = yesterdayTotalValue > 0 ? (totalTodayChange / yesterdayTotalValue) * 100 : 0;
 
+  const handleSort = (key: string) => {
+    if (sortKey === key) {
+      setSortDir(d => d === "asc" ? "desc" : "asc");
+    } else {
+      setSortKey(key);
+      setSortDir("asc");
+    }
+  };
+
+  const getSortValue = (item: FundWatchlistItem, key: string): number | string => {
+    const d = details.data[item.code];
+    const shares = item.holdingShares || 0;
+    const cost = item.costPrice || 0;
+    const dwjz = d?.dwjz ? parseFloat(d.dwjz) : 0;
+    const gszzlVal = d?.gszzl !== null && d?.gszzl !== undefined
+      ? (typeof d.gszzl === "string" ? parseFloat(d.gszzl) : d.gszzl) : null;
+    const rate = todayIsTrading ? (gszzlVal ?? d?.zzl ?? 0) : (d?.zzl ?? 0);
+    const estGsz = todayIsTrading
+      ? (gszzlVal !== null ? dwjz * (1 + (gszzlVal as number) / 100) : (d?.gsz ? parseFloat(d.gsz) : dwjz))
+      : dwjz;
+    const holdingProfit = shares * (dwjz - cost);
+    const holdingProfitRate = cost > 0 ? ((dwjz - cost) / cost) * 100 : 0;
+    const estTodayProfit = todayIsTrading
+      ? (gszzlVal !== null ? shares * dwjz * ((gszzlVal as number) / 100) : (d?.gsz ? shares * (parseFloat(d.gsz) - dwjz) : 0))
+      : 0;
+    const positionRatio = totalValue > 0 ? (shares * estGsz / totalValue) * 100 : 0;
+
+    switch (key) {
+      case "code": return item.code;
+      case "name": return d?.name ?? item.name ?? "";
+      case "gsz": return d?.gsz ? parseFloat(d.gsz) : dwjz;
+      case "cost": return cost;
+      case "shares": return shares;
+      case "positionRatio": return positionRatio;
+      case "holdingProfit": return holdingProfit;
+      case "holdingProfitRate": return holdingProfitRate;
+      case "rate": return typeof rate === "number" ? rate : 0;
+      case "estTodayProfit": return estTodayProfit;
+      case "updateTime": return d?.gztime ?? d?.jzrq ?? "";
+      default: return 0;
+    }
+  };
+
+  const sortedWatchlist = sortKey
+    ? [...watchlist].sort((a, b) => {
+        const va = getSortValue(a, sortKey);
+        const vb = getSortValue(b, sortKey);
+        const cmp = typeof va === "string" && typeof vb === "string"
+          ? va.localeCompare(vb, "zh")
+          : (va as number) - (vb as number);
+        return sortDir === "asc" ? cmp : -cmp;
+      })
+    : watchlist;
+
   return (
     <main className="app-shell">
       <div className="dashboard-container">
@@ -355,21 +411,21 @@ function App() {
               <table className="fund-monitor-table">
                 <thead>
                   <tr>
-                    <th style={{ textAlign: "left" }}>代码</th>
-                    <th style={{ maxWidth: "220px", width: "220px" }}>基金名称 ({watchlist.length})</th>
-                    <th style={{ textAlign: "right" }}>估算净值</th>
-                    <th style={{ textAlign: "right" }}>成本</th>
-                    <th style={{ textAlign: "right" }}>持仓份额</th>
-                    <th style={{ textAlign: "right" }}>仓位占比</th>
-                    <th style={{ textAlign: "right" }}>持有收益</th>
-                    <th style={{ textAlign: "right" }}>持有收益率</th>
-                    <th style={{ textAlign: "right" }}>涨跌幅</th>
-                    <th style={{ textAlign: "right" }}>估算收益</th>
-                    <th style={{ textAlign: "center" }}>更新时间</th>
+                    <th className="sortable-th" style={{ textAlign: "left" }} onClick={() => handleSort("code")}>代码{sortKey==="code" ? (sortDir==="asc" ? " ↑" : " ↓") : " ⇅"}</th>
+                    <th className="sortable-th" style={{ maxWidth: "220px", width: "220px" }} onClick={() => handleSort("name")}>基金名称 ({watchlist.length}){sortKey==="name" ? (sortDir==="asc" ? " ↑" : " ↓") : " ⇅"}</th>
+                    <th className="sortable-th" style={{ textAlign: "right" }} onClick={() => handleSort("gsz")}>估算净值{sortKey==="gsz" ? (sortDir==="asc" ? " ↑" : " ↓") : " ⇅"}</th>
+                    <th className="sortable-th" style={{ textAlign: "right" }} onClick={() => handleSort("cost")}>成本{sortKey==="cost" ? (sortDir==="asc" ? " ↑" : " ↓") : " ⇅"}</th>
+                    <th className="sortable-th" style={{ textAlign: "right" }} onClick={() => handleSort("shares")}>持仓份额{sortKey==="shares" ? (sortDir==="asc" ? " ↑" : " ↓") : " ⇅"}</th>
+                    <th className="sortable-th" style={{ textAlign: "right" }} onClick={() => handleSort("positionRatio")}>仓位占比{sortKey==="positionRatio" ? (sortDir==="asc" ? " ↑" : " ↓") : " ⇅"}</th>
+                    <th className="sortable-th" style={{ textAlign: "right" }} onClick={() => handleSort("holdingProfit")}>持有收益{sortKey==="holdingProfit" ? (sortDir==="asc" ? " ↑" : " ↓") : " ⇅"}</th>
+                    <th className="sortable-th" style={{ textAlign: "right" }} onClick={() => handleSort("holdingProfitRate")}>持有收益率{sortKey==="holdingProfitRate" ? (sortDir==="asc" ? " ↑" : " ↓") : " ⇅"}</th>
+                    <th className="sortable-th" style={{ textAlign: "right" }} onClick={() => handleSort("rate")}>涨跌幅{sortKey==="rate" ? (sortDir==="asc" ? " ↑" : " ↓") : " ⇅"}</th>
+                    <th className="sortable-th" style={{ textAlign: "right" }} onClick={() => handleSort("estTodayProfit")}>估算收益{sortKey==="estTodayProfit" ? (sortDir==="asc" ? " ↑" : " ↓") : " ⇅"}</th>
+                    <th className="sortable-th" style={{ textAlign: "center" }} onClick={() => handleSort("updateTime")}>更新时间{sortKey==="updateTime" ? (sortDir==="asc" ? " ↑" : " ↓") : " ⇅"}</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {watchlist.map((item) => {
+                  {sortedWatchlist.map((item) => {
                     const detail = details.data[item.code];
                     const shares = item.holdingShares || 0;
                     const cost = item.costPrice || 0;

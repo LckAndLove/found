@@ -1108,6 +1108,17 @@ button:disabled {
   font-size: 0.7rem;
 }
 
+.sortable-th {
+  cursor: pointer;
+  user-select: none;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.sortable-th:hover {
+  background: var(--bg-hover);
+  color: var(--color-blue, #4285f4);
+}
+
 .fund-monitor-table td {
   padding: 5px 3px;
   border-bottom: 1px solid var(--border-color);
