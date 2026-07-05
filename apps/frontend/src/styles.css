@@ -1085,6 +1085,7 @@ button:disabled {
   min-height: 0;
   overflow-y: auto;
   margin-bottom: 8px;
+  width: 100%;
 }
 
 .fund-monitor-table {

@@ -349,7 +349,7 @@ function App() {
           {error ? <p className="error">{error}</p> : null}
 
           {/* 2. Fund Table */}
-          <div className="content fund-table-container">
+          <div className="fund-table-container">
             <table className="fund-monitor-table">
               <thead>
                 <tr>
