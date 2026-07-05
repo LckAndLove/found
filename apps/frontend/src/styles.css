@@ -1280,3 +1280,46 @@ button:disabled {
 .monitor-summary-bar .val-text {
   font-weight: 800;
 }
+
+/* 5. VSCode-like Resizable Grid Layout */
+.dashboard-container {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+
+.dashboard-row {
+  display: flex;
+  width: 100%;
+  overflow: hidden;
+}
+
+.resizer-col {
+  width: 8px;
+  cursor: col-resize;
+  z-index: 10;
+  background-color: transparent;
+  transition: background-color 0.25s ease;
+  align-self: stretch;
+  flex-shrink: 0;
+}
+
+.resizer-col:hover {
+  background-color: rgba(66, 133, 244, 0.4);
+}
+
+.resizer-row {
+  height: 8px;
+  cursor: row-resize;
+  z-index: 10;
+  background-color: transparent;
+  transition: background-color 0.25s ease;
+  width: 100%;
+  flex-shrink: 0;
+}
+
+.resizer-row:hover {
+  background-color: rgba(66, 133, 244, 0.4);
+}

@@ -34,6 +34,8 @@ function App() {
   const [selectedCode, setSelectedCode] = useState<string | null>(null);
   const [editingCode, setEditingCode] = useState<string | null>(null);
   const [indices, setIndices] = useState<MarketIndex[]>([]);
+  const [colWidths, setColWidths] = useState<number[]>([33.33, 33.33, 33.33]);
+  const [rowHeights, setRowHeights] = useState<number[]>([50, 50]);
   
   const [details, setDetails] = useState<DetailState>({
     data: {},
@@ -319,6 +321,90 @@ function App() {
     }
   });
 
+  const startResizeCol1 = (e: React.MouseEvent) => {
+    e.preventDefault();
+    const startX = e.clientX;
+    const startWidth0 = colWidths[0];
+    const startWidth1 = colWidths[1];
+    const container = e.currentTarget.parentElement;
+    if (!container) return;
+    const totalWidth = container.getBoundingClientRect().width;
+
+    const handleMouseMove = (moveEvent: MouseEvent) => {
+      const deltaX = moveEvent.clientX - startX;
+      const deltaPercent = (deltaX / totalWidth) * 100;
+      
+      const newWidth0 = Math.max(15, Math.min(70, startWidth0 + deltaPercent));
+      const newWidth1 = startWidth0 + startWidth1 - newWidth0;
+      
+      setColWidths([newWidth0, newWidth1, colWidths[2]]);
+    };
+
+    const handleMouseUp = () => {
+      document.removeEventListener("mousemove", handleMouseMove);
+      document.removeEventListener("mouseup", handleMouseUp);
+    };
+
+    document.addEventListener("mousemove", handleMouseMove);
+    document.addEventListener("mouseup", handleMouseUp);
+  };
+
+  const startResizeCol2 = (e: React.MouseEvent) => {
+    e.preventDefault();
+    const startX = e.clientX;
+    const startWidth1 = colWidths[1];
+    const startWidth2 = colWidths[2];
+    const container = e.currentTarget.parentElement;
+    if (!container) return;
+    const totalWidth = container.getBoundingClientRect().width;
+
+    const handleMouseMove = (moveEvent: MouseEvent) => {
+      const deltaX = moveEvent.clientX - startX;
+      const deltaPercent = (deltaX / totalWidth) * 100;
+      
+      const newWidth1 = Math.max(15, Math.min(70, startWidth1 + deltaPercent));
+      const newWidth2 = startWidth1 + startWidth2 - newWidth1;
+      
+      setColWidths([colWidths[0], newWidth1, newWidth2]);
+    };
+
+    const handleMouseUp = () => {
+      document.removeEventListener("mousemove", handleMouseMove);
+      document.removeEventListener("mouseup", handleMouseUp);
+    };
+
+    document.addEventListener("mousemove", handleMouseMove);
+    document.addEventListener("mouseup", handleMouseUp);
+  };
+
+  const startResizeRow = (e: React.MouseEvent) => {
+    e.preventDefault();
+    const startY = e.clientY;
+    const startHeight0 = rowHeights[0];
+    const startHeight1 = rowHeights[1];
+    const container = e.currentTarget.parentElement;
+    if (!container) return;
+    const totalHeight = container.getBoundingClientRect().height;
+
+    const handleMouseMove = (moveEvent: MouseEvent) => {
+      const deltaY = moveEvent.clientY - startY;
+      const deltaPercent = (deltaY / totalHeight) * 100;
+      
+      const newHeight0 = Math.max(15, Math.min(85, startHeight0 + deltaPercent));
+      const newHeight1 = startHeight0 + startHeight1 - newHeight0;
+      
+      setRowHeights([newHeight0, newHeight1]);
+    };
+
+    const handleMouseUp = () => {
+      document.removeEventListener("mousemove", handleMouseMove);
+      document.removeEventListener("mouseup", handleMouseUp);
+    };
+
+    document.addEventListener("mousemove", handleMouseMove);
+    document.addEventListener("mouseup", handleMouseUp);
+  };
+
   const totalGainLoss = totalValue - totalCost;
   const totalReturnRate = totalCost > 0 ? (totalGainLoss / totalCost) * 100 : 0;
   const yesterdayTotalValue = totalValue - totalTodayChange;
@@ -326,196 +412,215 @@ function App() {
 
   return (
     <main className="app-shell">
-      <div className="dashboard-grid">
-        <section className="app-card">
-          {/* 1. Market Indices Bar */}
-          <div className="market-indices-bar">
-            {indices.map((idx, index) => {
-              const changeClass = getRateClass(idx.change);
-              return (
-                <div key={index} className="index-item">
-                  <span className="index-name">{idx.name}</span>
-                  <span className={`index-value ${changeClass}`}>{idx.value.toFixed(2)}</span>
-                  <div className="index-change-row">
-                    <span className={changeClass}>{idx.change > 0 ? "+" : ""}{idx.change.toFixed(2)}</span>
-                    <span className={changeClass}>{idx.ratio > 0 ? "+" : ""}{idx.ratio.toFixed(2)}%</span>
+      <div className="dashboard-container">
+        
+        {/* Row 1 */}
+        <div className="dashboard-row" style={{ height: `${rowHeights[0]}%` }}>
+          <section className="app-card" style={{ flex: `0 0 calc(${colWidths[0]}% - 4px)`, width: `calc(${colWidths[0]}% - 4px)` }}>
+            {/* 1. Market Indices Bar */}
+            <div className="market-indices-bar">
+              {indices.map((idx, index) => {
+                const changeClass = getRateClass(idx.change);
+                return (
+                  <div key={index} className="index-item">
+                    <span className="index-name">{idx.name}</span>
+                    <span className={`index-value ${changeClass}`}>{idx.value.toFixed(2)}</span>
+                    <div className="index-change-row">
+                      <span className={changeClass}>{idx.change > 0 ? "+" : ""}{idx.change.toFixed(2)}</span>
+                      <span className={changeClass}>{idx.ratio > 0 ? "+" : ""}{idx.ratio.toFixed(2)}%</span>
+                    </div>
                   </div>
-                </div>
-              );
-            })}
-          </div>
+                );
+              })}
+            </div>
 
-          {message ? <p className="notice">{message}</p> : null}
-          {error ? <p className="error">{error}</p> : null}
+            {message ? <p className="notice">{message}</p> : null}
+            {error ? <p className="error">{error}</p> : null}
 
-          {/* 2. Fund Table */}
-          <div className="fund-table-container">
-            <table className="fund-monitor-table">
-              <thead>
-                <tr>
-                  <th style={{ width: "32px", textAlign: "center" }}>
-                    <input type="checkbox" defaultChecked disabled />
-                  </th>
-                  <th>基金名称 ({watchlist.length})</th>
-                  <th style={{ textAlign: "right" }}>估算净值</th>
-                  <th style={{ textAlign: "right" }}>持有收益</th>
-                  <th style={{ textAlign: "right" }}>持有收益率</th>
-                  <th style={{ textAlign: "right" }}>涨跌幅</th>
-                  <th style={{ textAlign: "right" }}>估算收益</th>
-                  <th style={{ textAlign: "center" }}>更新时间</th>
-                </tr>
-              </thead>
-              <tbody>
-                {watchlist.map((item) => {
-                  const detail = details.data[item.code];
-                  const shares = item.holdingShares || 0;
-                  const cost = item.costPrice || 0;
-                  const dwjz = detail?.dwjz ? parseFloat(detail.dwjz) : 0;
-                  const gszzlVal = detail?.gszzl !== null && detail?.gszzl !== undefined
-                    ? (typeof detail.gszzl === "string" ? parseFloat(detail.gszzl) : detail.gszzl)
-                    : null;
-                  
-                  const rate = todayIsTrading ? (gszzlVal ?? detail?.zzl) : detail?.zzl;
-                  const rateClass = getRateClass(rate);
-                  
-                  const estGsz = todayIsTrading
-                    ? (gszzlVal !== null ? dwjz * (1 + gszzlVal / 100) : (detail?.gsz ? parseFloat(detail.gsz) : dwjz))
-                    : dwjz;
+            {/* 2. Fund Table */}
+            <div className="fund-table-container">
+              <table className="fund-monitor-table">
+                <thead>
+                  <tr>
+                    <th style={{ width: "32px", textAlign: "center" }}>
+                      <input type="checkbox" defaultChecked disabled />
+                    </th>
+                    <th>基金名称 ({watchlist.length})</th>
+                    <th style={{ textAlign: "right" }}>估算净值</th>
+                    <th style={{ textAlign: "right" }}>持有收益</th>
+                    <th style={{ textAlign: "right" }}>持有收益率</th>
+                    <th style={{ textAlign: "right" }}>涨跌幅</th>
+                    <th style={{ textAlign: "right" }}>估算收益</th>
+                    <th style={{ textAlign: "center" }}>更新时间</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {watchlist.map((item) => {
+                    const detail = details.data[item.code];
+                    const shares = item.holdingShares || 0;
+                    const cost = item.costPrice || 0;
+                    const dwjz = detail?.dwjz ? parseFloat(detail.dwjz) : 0;
+                    const gszzlVal = detail?.gszzl !== null && detail?.gszzl !== undefined
+                      ? (typeof detail.gszzl === "string" ? parseFloat(detail.gszzl) : detail.gszzl)
+                      : null;
                     
-                  const holdingProfit = shares * (dwjz - cost);
-                  const holdingProfitRate = cost > 0 ? ((dwjz - cost) / cost) * 100 : 0;
-                  
-                  const estTodayProfit = todayIsTrading
-                    ? (gszzlVal !== null ? shares * dwjz * (gszzlVal / 100) : (detail?.gsz ? shares * (parseFloat(detail.gsz) - dwjz) : 0))
-                    : 0;
+                    const rate = todayIsTrading ? (gszzlVal ?? detail?.zzl) : detail?.zzl;
+                    const rateClass = getRateClass(rate);
                     
-                  const updateTime = detail?.gztime 
-                    ? detail.gztime.split(" ")[0].slice(5) // e.g. "07-03"
-                    : detail?.jzrq 
-                    ? detail.jzrq.slice(5) 
-                    : "--";
+                    const estGsz = todayIsTrading
+                      ? (gszzlVal !== null ? dwjz * (1 + gszzlVal / 100) : (detail?.gsz ? parseFloat(detail.gsz) : dwjz))
+                      : dwjz;
+                      
+                    const holdingProfit = shares * (dwjz - cost);
+                    const holdingProfitRate = cost > 0 ? ((dwjz - cost) / cost) * 100 : 0;
+                    
+                    const estTodayProfit = todayIsTrading
+                      ? (gszzlVal !== null ? shares * dwjz * (gszzlVal / 100) : (detail?.gsz ? shares * (parseFloat(detail.gsz) - dwjz) : 0))
+                      : 0;
+                      
+                    const updateTime = detail?.gztime 
+                      ? detail.gztime.split(" ")[0].slice(5) // e.g. "07-03"
+                      : detail?.jzrq 
+                      ? detail.jzrq.slice(5) 
+                      : "--";
 
-                  return (
-                    <tr key={item.code}>
-                      <td style={{ textAlign: "center" }}>
-                        <input type="checkbox" defaultChecked disabled />
-                      </td>
-                      <td>
-                        <div className="fund-name-cell">
-                          <span className="fund-name">
-                            {detail?.name ?? item.name ?? "加载中..."}
-                            {isFundSuspended(item.code) && <span className="suspended-badge-sidebar" style={{ marginLeft: "6px" }}>停申</span>}
-                          </span>
-                        </div>
-                      </td>
-                      <td style={{ textAlign: "right" }} className="flat font-number">
-                        {todayIsTrading ? (detail?.gsz ?? "--") : dwjz.toFixed(4)}
-                      </td>
-                      <td style={{ textAlign: "right" }} className={`${getRateClass(holdingProfit)} font-number`}>
-                        {holdingProfit > 0 ? "+" : ""}{holdingProfit.toFixed(2)}
-                      </td>
-                      <td style={{ textAlign: "right" }} className={`${getRateClass(holdingProfitRate)} font-number`}>
-                        {holdingProfitRate > 0 ? "+" : ""}{holdingProfitRate.toFixed(2)}%
-                      </td>
-                      <td style={{ textAlign: "right" }} className={`${rateClass} font-number`}>
-                        {formatRate(rate)}
-                      </td>
-                      <td style={{ textAlign: "right" }} className={`${getRateClass(estTodayProfit)} font-number`}>
-                        {estTodayProfit > 0 ? "+" : ""}{estTodayProfit.toFixed(2)}
-                      </td>
-                      <td style={{ textAlign: "center" }} className="flat font-number">
-                        {updateTime}
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-
-          {/* 3. Action Row */}
-          <div className="monitor-actions-row">
-            <div className="action-btns-left">
-              <button className="monitor-action-btn">行情中心</button>
-              <button className="monitor-action-btn disabled" disabled>休市中</button>
-              <button className="monitor-action-btn">编辑</button>
-              <button className="monitor-action-btn">设置</button>
-              <button className="monitor-action-btn">日志</button>
-              <button className="monitor-action-btn primary">打赏</button>
+                    return (
+                      <tr key={item.code}>
+                        <td style={{ textAlign: "center" }}>
+                          <input type="checkbox" defaultChecked disabled />
+                        </td>
+                        <td>
+                          <div className="fund-name-cell">
+                            <span className="fund-name">
+                              {detail?.name ?? item.name ?? "加载中..."}
+                              {isFundSuspended(item.code) && <span className="suspended-badge-sidebar" style={{ marginLeft: "6px" }}>停申</span>}
+                            </span>
+                          </div>
+                        </td>
+                        <td style={{ textAlign: "right" }} className="flat font-number">
+                          {todayIsTrading ? (detail?.gsz ?? "--") : dwjz.toFixed(4)}
+                        </td>
+                        <td style={{ textAlign: "right" }} className={`${getRateClass(holdingProfit)} font-number`}>
+                          {holdingProfit > 0 ? "+" : ""}{holdingProfit.toFixed(2)}
+                        </td>
+                        <td style={{ textAlign: "right" }} className={`${getRateClass(holdingProfitRate)} font-number`}>
+                          {holdingProfitRate > 0 ? "+" : ""}{holdingProfitRate.toFixed(2)}%
+                        </td>
+                        <td style={{ textAlign: "right" }} className={`${rateClass} font-number`}>
+                          {formatRate(rate)}
+                        </td>
+                        <td style={{ textAlign: "right" }} className={`${getRateClass(estTodayProfit)} font-number`}>
+                          {estTodayProfit > 0 ? "+" : ""}{estTodayProfit.toFixed(2)}
+                        </td>
+                        <td style={{ textAlign: "center" }} className="flat font-number">
+                          {updateTime}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
             </div>
-            <button 
-              className="monitor-refresh-btn"
-              onClick={() => {
-                watchlist.forEach((item) => {
-                  void loadDetail(item.code);
-                  void loadIntraday(item.code);
-                });
-                loadIndices();
-              }}
-            >
-              <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor">
-                <path d="M17.65 6.35A7.958 7.958 0 0 0 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08A5.99 5.99 0 0 1 12 18c-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/>
-              </svg>
-            </button>
-          </div>
 
-          {/* 4. Summary Bottom Bar */}
-          <div className="monitor-summary-bar">
-            <div className="summary-item total-box">
-              总金额:<span className="val-text">¥ {totalValue.toLocaleString("zh-CN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+            {/* 3. Action Row */}
+            <div className="monitor-actions-row">
+              <div className="action-btns-left">
+                <button className="monitor-action-btn">行情中心</button>
+                <button className="monitor-action-btn disabled" disabled>休市中</button>
+                <button className="monitor-action-btn">编辑</button>
+                <button className="monitor-action-btn">设置</button>
+                <button className="monitor-action-btn">日志</button>
+                <button className="monitor-action-btn primary">打赏</button>
+              </div>
+              <button 
+                className="monitor-refresh-btn"
+                onClick={() => {
+                  watchlist.forEach((item) => {
+                    void loadDetail(item.code);
+                    void loadIntraday(item.code);
+                  });
+                  loadIndices();
+                }}
+              >
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor">
+                  <path d="M17.65 6.35A7.958 7.958 0 0 0 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08A5.99 5.99 0 0 1 12 18c-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/>
+                </svg>
+              </button>
             </div>
-            <div className={`summary-item today-box ${getRateClass(totalTodayChange)}`}>
-              日收益:<span className={`val-text ${getRateClass(totalTodayChange)}`}>
-                {totalTodayChange > 0 ? "+" : ""}{totalTodayChange.toFixed(2)}({totalTodayChange >= 0 ? "+" : ""}{dailyChangeRate.toFixed(2)}%)
-              </span>
+
+            {/* 4. Summary Bottom Bar */}
+            <div className="monitor-summary-bar">
+              <div className="summary-item total-box">
+                总金额:<span className="val-text">¥ {totalValue.toLocaleString("zh-CN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+              </div>
+              <div className={`summary-item today-box ${getRateClass(totalTodayChange)}`}>
+                日收益:<span className={`val-text ${getRateClass(totalTodayChange)}`}>
+                  {totalTodayChange > 0 ? "+" : ""}{totalTodayChange.toFixed(2)}({totalTodayChange >= 0 ? "+" : ""}{dailyChangeRate.toFixed(2)}%)
+                </span>
+              </div>
+              <div className={`summary-item holding-box ${getRateClass(totalGainLoss)}`}>
+                持有收益:<span className={`val-text ${getRateClass(totalGainLoss)}`}>
+                  {totalGainLoss > 0 ? "+" : ""}{totalGainLoss.toFixed(2)}({totalReturnRate >= 0 ? "+" : ""}{totalReturnRate.toFixed(2)}%)
+                </span>
+              </div>
             </div>
-            <div className={`summary-item holding-box ${getRateClass(totalGainLoss)}`}>
-              持有收益:<span className={`val-text ${getRateClass(totalGainLoss)}`}>
-                {totalGainLoss > 0 ? "+" : ""}{totalGainLoss.toFixed(2)}({totalReturnRate >= 0 ? "+" : ""}{totalReturnRate.toFixed(2)}%)
-              </span>
+          </section>
+          
+          <div className="resizer-col" onMouseDown={startResizeCol1}></div>
+          
+          <section className="app-card placeholder-cell" style={{ flex: `0 0 calc(${colWidths[1]}% - 4px)`, width: `calc(${colWidths[1]}% - 4px)` }}>
+            <div className="placeholder-content">
+              <span className="placeholder-icon">📊</span>
+              <h3>监视器 02</h3>
+              <p>等待配置监控数据...</p>
             </div>
-          </div>
-        </section>
-
-        <section className="app-card placeholder-cell">
-          <div className="placeholder-content">
-            <span className="placeholder-icon">📊</span>
-            <h3>监视器 02</h3>
-            <p>等待配置监控数据...</p>
-          </div>
-        </section>
-
-        <section className="app-card placeholder-cell">
-          <div className="placeholder-content">
-            <span className="placeholder-icon">📈</span>
-            <h3>监视器 03</h3>
-            <p>等待配置监控数据...</p>
-          </div>
-        </section>
-
-        <section className="app-card placeholder-cell">
-          <div className="placeholder-content">
-            <span className="placeholder-icon">🔍</span>
-            <h3>监视器 04</h3>
-            <p>等待配置监控数据...</p>
-          </div>
-        </section>
-
-        <section className="app-card placeholder-cell">
-          <div className="placeholder-content">
-            <span className="placeholder-icon">💼</span>
-            <h3>监视器 05</h3>
-            <p>等待配置监控数据...</p>
-          </div>
-        </section>
-
-        <section className="app-card placeholder-cell">
-          <div className="placeholder-content">
-            <span className="placeholder-icon">⚙️</span>
-            <h3>监视器 06</h3>
-            <p>等待配置监控数据...</p>
-          </div>
-        </section>
+          </section>
+          
+          <div className="resizer-col" onMouseDown={startResizeCol2}></div>
+          
+          <section className="app-card placeholder-cell" style={{ flex: `0 0 calc(${colWidths[2]}% - 4px)`, width: `calc(${colWidths[2]}% - 4px)` }}>
+            <div className="placeholder-content">
+              <span className="placeholder-icon">📈</span>
+              <h3>监视器 03</h3>
+              <p>等待配置监控数据...</p>
+            </div>
+          </section>
+        </div>
+        
+        {/* Row Resizer */}
+        <div className="resizer-row" onMouseDown={startResizeRow}></div>
+        
+        {/* Row 2 */}
+        <div className="dashboard-row" style={{ height: `${rowHeights[1]}%` }}>
+          <section className="app-card placeholder-cell" style={{ flex: `0 0 calc(${colWidths[0]}% - 4px)`, width: `calc(${colWidths[0]}% - 4px)` }}>
+            <div className="placeholder-content">
+              <span className="placeholder-icon">🔍</span>
+              <h3>监视器 04</h3>
+              <p>等待配置监控数据...</p>
+            </div>
+          </section>
+          
+          <div className="resizer-col" onMouseDown={startResizeCol1}></div>
+          
+          <section className="app-card placeholder-cell" style={{ flex: `0 0 calc(${colWidths[1]}% - 4px)`, width: `calc(${colWidths[1]}% - 4px)` }}>
+            <div className="placeholder-content">
+              <span className="placeholder-icon">💼</span>
+              <h3>监视器 05</h3>
+              <p>等待配置监控数据...</p>
+            </div>
+          </section>
+          
+          <div className="resizer-col" onMouseDown={startResizeCol2}></div>
+          
+          <section className="app-card placeholder-cell" style={{ flex: `0 0 calc(${colWidths[2]}% - 4px)`, width: `calc(${colWidths[2]}% - 4px)` }}>
+            <div className="placeholder-content">
+              <span className="placeholder-icon">⚙️</span>
+              <h3>监视器 06</h3>
+              <p>等待配置监控数据...</p>
+            </div>
+          </section>
+        </div>
+        
       </div>
     </main>
   );
