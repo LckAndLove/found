@@ -349,7 +349,7 @@ function App() {
             {watchlist.length === 0 ? <p className="empty">您的自选列表为空</p> : null}
             {watchlist.map((item) => {
               const detail = details.data[item.code];
-              const rate = detail?.gszzl ?? detail?.zzl;
+              const rate = todayIsTrading ? (detail?.gszzl ?? detail?.zzl) : detail?.zzl;
               const rateClass = getRateClass(rate);
               return (
                 <button
@@ -473,7 +473,8 @@ function FundSummary(props: {
   }
 
   const detail = props.detail;
-  const rate = detail?.gszzl ?? detail?.zzl;
+  const todayIsTrading = isTradingDay();
+  const rate = todayIsTrading ? (detail?.gszzl ?? detail?.zzl) : detail?.zzl;
   const rateClass = getRateClass(rate);
 
   // Calculations for current fund holdings
@@ -484,8 +485,6 @@ function FundSummary(props: {
   const sharesNum = props.holdingShares || 0;
 
   const currentValue = sharesNum * dwjzNum;
-  
-  const todayIsTrading = isTradingDay();
   
   // Resolve EastMoney stale gsz base price discrepancy using gszzl rate
   const gszzl = typeof detail?.gszzl === "number" ? detail.gszzl : null;
@@ -541,7 +540,7 @@ function FundSummary(props: {
           </div>
           <div>
             <dt>估算净值</dt>
-            <dd>{detail?.gsz ?? "--"}</dd>
+            <dd>{todayIsTrading ? (detail?.gsz ?? "--") : "--"}</dd>
           </div>
           <div>
             <dt>今日预估盈亏</dt>
@@ -576,7 +575,7 @@ function FundSummary(props: {
           </div>
           <div>
             <dt>估算净值</dt>
-            <dd>{detail?.gsz ?? "--"}</dd>
+            <dd>{todayIsTrading ? (detail?.gsz ?? "--") : "--"}</dd>
           </div>
           <div>
             <dt>数据时间/净值日</dt>
