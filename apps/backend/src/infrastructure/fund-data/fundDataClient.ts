@@ -243,19 +243,27 @@ export function createFundDataClient(http: UpstreamHttpClient): FundDataClient {
     },
 
     async getMarketIndices() {
-      const raw = await http.getText(`https://qt.gtimg.cn/q=s_sh000001,s_sz399300,s_sz399001,s_sz399006,s_sh688000&_t=${Date.now()}`);
+      const raw = await http.getText(`https://qt.gtimg.cn/q=s_sh000001,s_sz399300,s_sz399001,s_sz399006,s_sh000688&_t=${Date.now()}`);
       const lines = raw.split("\n").filter(Boolean);
       const indices = lines.map((line) => {
         const eqIdx = line.indexOf("=");
         if (eqIdx === -1) return null;
         const valStr = line.slice(eqIdx + 1).replace(/"/g, "").replace(/;/g, "").trim();
         const parts = valStr.split("~");
-        if (parts.length < 5) return null;
+        if (parts.length < 6) return null;
+
+        let name = parts[1];
+        if (line.includes("sh000001")) name = "上证指数";
+        else if (line.includes("sz399300") || line.includes("sh000300")) name = "沪深300";
+        else if (line.includes("sz399001")) name = "深证成指";
+        else if (line.includes("sz399006")) name = "创业板指";
+        else if (line.includes("sh000688")) name = "科创50";
+
         return {
-          name: parts[1],
-          value: parseFloat(parts[2]),
-          change: parseFloat(parts[3]),
-          ratio: parseFloat(parts[4])
+          name,
+          value: parseFloat(parts[3]),
+          change: parseFloat(parts[4]),
+          ratio: parseFloat(parts[5])
         };
       }).filter((item): item is { name: string; value: number; change: number; ratio: number } => Boolean(item));
       return indices;

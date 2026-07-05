@@ -1025,10 +1025,10 @@ button:disabled {
 .market-indices-bar {
   display: grid;
   grid-template-columns: repeat(5, 1fr);
-  gap: 8px;
-  padding: 8px 12px;
+  gap: 4px;
+  padding: 6px 8px;
   background: var(--bg-hover);
-  border-radius: 12px;
+  border-radius: 10px;
   margin-bottom: 8px;
 }
 
@@ -1041,13 +1041,13 @@ button:disabled {
 }
 
 .index-name {
-  font-size: 0.82rem;
+  font-size: 0.72rem;
   font-weight: 700;
   color: var(--text-primary);
 }
 
 .index-value {
-  font-size: 1.1rem;
+  font-size: 0.88rem;
   font-weight: 800;
   line-height: 1.2;
 }
@@ -1066,8 +1066,8 @@ button:disabled {
 
 .index-change-row {
   display: flex;
-  gap: 6px;
-  font-size: 0.7rem;
+  gap: 3px;
+  font-size: 0.64rem;
   font-weight: 700;
 }
 
@@ -1098,18 +1098,20 @@ button:disabled {
   position: sticky;
   top: 0;
   background: var(--bg-card);
-  padding: 6px 8px;
+  padding: 4px 3px;
   font-weight: 700;
   color: var(--text-primary);
   border-bottom: 1.5px solid var(--border-color);
   z-index: 1;
   white-space: nowrap;
+  font-size: 0.7rem;
 }
 
 .fund-monitor-table td {
-  padding: 6px 8px;
+  padding: 5px 3px;
   border-bottom: 1px solid var(--border-color);
   vertical-align: middle;
+  font-size: 0.76rem;
 }
 
 .fund-monitor-table tr:hover {
