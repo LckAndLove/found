@@ -268,6 +268,8 @@ function App() {
   let totalTodayChange = 0;
   let hasHoldings = false;
 
+  const todayIsTrading = isTradingDay();
+
   watchlist.forEach((item) => {
     const detail = details.data[item.code];
     const shares = item.holdingShares;
@@ -279,7 +281,7 @@ function App() {
       totalValue += shares * dwjzVal;
       totalCost += shares * costVal;
       
-      if (detail) {
+      if (todayIsTrading && detail) {
         const gszzl = typeof detail.gszzl === "number" ? detail.gszzl : null;
         if (gszzl !== null) {
           totalTodayChange += shares * dwjzVal * (gszzl / 100);
@@ -483,21 +485,25 @@ function FundSummary(props: {
 
   const currentValue = sharesNum * dwjzNum;
   
+  const todayIsTrading = isTradingDay();
+  
   // Resolve EastMoney stale gsz base price discrepancy using gszzl rate
   const gszzl = typeof detail?.gszzl === "number" ? detail.gszzl : null;
   const estGsz =
-    gszzl !== null
-      ? dwjzNum * (1 + gszzl / 100)
-      : gszNum;
+    todayIsTrading
+      ? (gszzl !== null ? dwjzNum * (1 + gszzl / 100) : gszNum)
+      : dwjzNum;
 
   const estCurrentValue = sharesNum * estGsz;
   const totalProfit = sharesNum * (dwjzNum - costNum);
   
   const estTodayProfit =
-    gszzl !== null
-      ? sharesNum * dwjzNum * (gszzl / 100)
-      : detail?.gsz
-      ? sharesNum * (gszNum - dwjzNum)
+    todayIsTrading
+      ? (gszzl !== null
+          ? sharesNum * dwjzNum * (gszzl / 100)
+          : detail?.gsz
+          ? sharesNum * (gszNum - dwjzNum)
+          : 0)
       : 0;
 
   const totalReturn = costNum > 0 ? (totalProfit / (sharesNum * costNum)) * 100 : 0;
@@ -701,15 +707,12 @@ function FundSummary(props: {
   );
 }
 
-function isTradingTime(date: Date = new Date()): boolean {
+function isTradingDay(date: Date = new Date()): boolean {
   const formatter = new Intl.DateTimeFormat("zh-CN", {
     timeZone: "Asia/Shanghai",
     year: "numeric",
     month: "2-digit",
     day: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-    second: "2-digit",
     hour12: false
   });
   const parts = formatter.formatToParts(date);
@@ -718,8 +721,6 @@ function isTradingTime(date: Date = new Date()): boolean {
   const year = findPart("year");
   const month = findPart("month");
   const day = findPart("day");
-  const hour = findPart("hour");
-  const minute = findPart("minute");
   
   const dayOfWeek = date.toLocaleString("en-US", { timeZone: "Asia/Shanghai", weekday: "short" });
   
@@ -742,6 +743,26 @@ function isTradingTime(date: Date = new Date()): boolean {
       return false;
     }
   }
+
+  return true;
+}
+
+function isTradingTime(date: Date = new Date()): boolean {
+  if (!isTradingDay(date)) {
+    return false;
+  }
+
+  const formatter = new Intl.DateTimeFormat("zh-CN", {
+    timeZone: "Asia/Shanghai",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false
+  });
+  const parts = formatter.formatToParts(date);
+  const findPart = (type: string) => parseInt(parts.find((p) => p.type === type)?.value || "0", 10);
+  
+  const hour = findPart("hour");
+  const minute = findPart("minute");
 
   const timeInMinutes = hour * 60 + minute;
   const isMorning = timeInMinutes >= 9 * 60 + 30 && timeInMinutes <= 11 * 60 + 30;
