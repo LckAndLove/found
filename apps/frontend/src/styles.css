@@ -323,8 +323,8 @@ button:disabled {
   grid-template-columns: 180px minmax(0, 1fr);
   gap: 12px;
   flex: 1;
+  min-height: 0;
   overflow: hidden;
-  height: 100%;
 }
 
 /* Sidebar List */
@@ -435,9 +435,9 @@ button:disabled {
 
 /* Detail Summary Panel */
 .summary {
-  padding: 24px;
+  padding: 12px;
   border: 1px solid var(--border-color);
-  border-radius: 14px;
+  border-radius: 12px;
   background: var(--bg-card);
   box-shadow: var(--shadow-sm);
   display: flex;
@@ -466,31 +466,31 @@ button:disabled {
   display: flex;
   align-items: start;
   justify-content: space-between;
-  gap: 16px;
-  margin-bottom: 24px;
+  gap: 8px;
+  margin-bottom: 12px;
 }
 
 .summary-head small {
   display: block;
-  margin-bottom: 6px;
+  margin-bottom: 2px;
   color: var(--text-secondary);
   font-weight: 700;
-  font-size: 0.82rem;
+  font-size: 0.72rem;
   letter-spacing: 0.05em;
 }
 
 .summary-head h2 {
-  font-size: 1.6rem;
+  font-size: 1.15rem;
   font-weight: 800;
   margin: 0;
   letter-spacing: -0.02em;
 }
 
 .rate-badge {
-  font-size: 1.35rem;
+  font-size: 1.0rem;
   font-weight: 800;
-  padding: 6px 14px;
-  border-radius: 10px;
+  padding: 4px 8px;
+  border-radius: 8px;
   box-shadow: var(--shadow-sm);
 }
 
