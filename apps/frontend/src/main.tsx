@@ -34,8 +34,6 @@ function App() {
   const [selectedCode, setSelectedCode] = useState<string | null>(null);
   const [editingCode, setEditingCode] = useState<string | null>(null);
   const [indices, setIndices] = useState<MarketIndex[]>([]);
-  const [colWidths, setColWidths] = useState<number[]>([33.33, 33.33, 33.33]);
-  const [rowHeights, setRowHeights] = useState<number[]>([50, 50]);
   
   const [details, setDetails] = useState<DetailState>({
     data: {},
@@ -321,89 +319,7 @@ function App() {
     }
   });
 
-  const startResizeCol1 = (e: React.MouseEvent) => {
-    e.preventDefault();
-    const startX = e.clientX;
-    const startWidth0 = colWidths[0];
-    const startWidth1 = colWidths[1];
-    const container = e.currentTarget.parentElement;
-    if (!container) return;
-    const totalWidth = container.getBoundingClientRect().width;
 
-    const handleMouseMove = (moveEvent: MouseEvent) => {
-      const deltaX = moveEvent.clientX - startX;
-      const deltaPercent = (deltaX / totalWidth) * 100;
-      
-      const newWidth0 = Math.max(15, Math.min(70, startWidth0 + deltaPercent));
-      const newWidth1 = startWidth0 + startWidth1 - newWidth0;
-      
-      setColWidths([newWidth0, newWidth1, colWidths[2]]);
-    };
-
-    const handleMouseUp = () => {
-      document.removeEventListener("mousemove", handleMouseMove);
-      document.removeEventListener("mouseup", handleMouseUp);
-    };
-
-    document.addEventListener("mousemove", handleMouseMove);
-    document.addEventListener("mouseup", handleMouseUp);
-  };
-
-  const startResizeCol2 = (e: React.MouseEvent) => {
-    e.preventDefault();
-    const startX = e.clientX;
-    const startWidth1 = colWidths[1];
-    const startWidth2 = colWidths[2];
-    const container = e.currentTarget.parentElement;
-    if (!container) return;
-    const totalWidth = container.getBoundingClientRect().width;
-
-    const handleMouseMove = (moveEvent: MouseEvent) => {
-      const deltaX = moveEvent.clientX - startX;
-      const deltaPercent = (deltaX / totalWidth) * 100;
-      
-      const newWidth1 = Math.max(15, Math.min(70, startWidth1 + deltaPercent));
-      const newWidth2 = startWidth1 + startWidth2 - newWidth1;
-      
-      setColWidths([colWidths[0], newWidth1, newWidth2]);
-    };
-
-    const handleMouseUp = () => {
-      document.removeEventListener("mousemove", handleMouseMove);
-      document.removeEventListener("mouseup", handleMouseUp);
-    };
-
-    document.addEventListener("mousemove", handleMouseMove);
-    document.addEventListener("mouseup", handleMouseUp);
-  };
-
-  const startResizeRow = (e: React.MouseEvent) => {
-    e.preventDefault();
-    const startY = e.clientY;
-    const startHeight0 = rowHeights[0];
-    const startHeight1 = rowHeights[1];
-    const container = e.currentTarget.parentElement;
-    if (!container) return;
-    const totalHeight = container.getBoundingClientRect().height;
-
-    const handleMouseMove = (moveEvent: MouseEvent) => {
-      const deltaY = moveEvent.clientY - startY;
-      const deltaPercent = (deltaY / totalHeight) * 100;
-      
-      const newHeight0 = Math.max(15, Math.min(85, startHeight0 + deltaPercent));
-      const newHeight1 = startHeight0 + startHeight1 - newHeight0;
-      
-      setRowHeights([newHeight0, newHeight1]);
-    };
-
-    const handleMouseUp = () => {
-      document.removeEventListener("mousemove", handleMouseMove);
-      document.removeEventListener("mouseup", handleMouseUp);
-    };
-
-    document.addEventListener("mousemove", handleMouseMove);
-    document.addEventListener("mouseup", handleMouseUp);
-  };
 
   const totalGainLoss = totalValue - totalCost;
   const totalReturnRate = totalCost > 0 ? (totalGainLoss / totalCost) * 100 : 0;
@@ -413,10 +329,7 @@ function App() {
   return (
     <main className="app-shell">
       <div className="dashboard-container">
-        
-        {/* Row 1 */}
-        <div className="dashboard-row" style={{ height: `${rowHeights[0]}%` }}>
-          <section className="app-card" style={{ flex: `0 0 calc(${colWidths[0]}% - 4px)`, width: `calc(${colWidths[0]}% - 4px)` }}>
+        <section className="app-card">
             {/* 1. Market Indices Bar */}
             <div className="market-indices-bar">
               {indices.map((idx, index) => {
@@ -539,63 +452,7 @@ function App() {
               </div>
 
             </div>
-          </section>
-          
-          <div className="resizer-col" onMouseDown={startResizeCol1}></div>
-          
-          <section className="app-card placeholder-cell" style={{ flex: `0 0 calc(${colWidths[1]}% - 4px)`, width: `calc(${colWidths[1]}% - 4px)` }}>
-            <div className="placeholder-content">
-              <span className="placeholder-icon">📊</span>
-              <h3>监视器 02</h3>
-              <p>等待配置监控数据...</p>
-            </div>
-          </section>
-          
-          <div className="resizer-col" onMouseDown={startResizeCol2}></div>
-          
-          <section className="app-card placeholder-cell" style={{ flex: `0 0 calc(${colWidths[2]}% - 4px)`, width: `calc(${colWidths[2]}% - 4px)` }}>
-            <div className="placeholder-content">
-              <span className="placeholder-icon">📈</span>
-              <h3>监视器 03</h3>
-              <p>等待配置监控数据...</p>
-            </div>
-          </section>
-        </div>
-        
-        {/* Row Resizer */}
-        <div className="resizer-row" onMouseDown={startResizeRow}></div>
-        
-        {/* Row 2 */}
-        <div className="dashboard-row" style={{ height: `${rowHeights[1]}%` }}>
-          <section className="app-card placeholder-cell" style={{ flex: `0 0 calc(${colWidths[0]}% - 4px)`, width: `calc(${colWidths[0]}% - 4px)` }}>
-            <div className="placeholder-content">
-              <span className="placeholder-icon">🔍</span>
-              <h3>监视器 04</h3>
-              <p>等待配置监控数据...</p>
-            </div>
-          </section>
-          
-          <div className="resizer-col" onMouseDown={startResizeCol1}></div>
-          
-          <section className="app-card placeholder-cell" style={{ flex: `0 0 calc(${colWidths[1]}% - 4px)`, width: `calc(${colWidths[1]}% - 4px)` }}>
-            <div className="placeholder-content">
-              <span className="placeholder-icon">💼</span>
-              <h3>监视器 05</h3>
-              <p>等待配置监控数据...</p>
-            </div>
-          </section>
-          
-          <div className="resizer-col" onMouseDown={startResizeCol2}></div>
-          
-          <section className="app-card placeholder-cell" style={{ flex: `0 0 calc(${colWidths[2]}% - 4px)`, width: `calc(${colWidths[2]}% - 4px)` }}>
-            <div className="placeholder-content">
-              <span className="placeholder-icon">⚙️</span>
-              <h3>监视器 06</h3>
-              <p>等待配置监控数据...</p>
-            </div>
-          </section>
-        </div>
-        
+        </section>
       </div>
     </main>
   );
