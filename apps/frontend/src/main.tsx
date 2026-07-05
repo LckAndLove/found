@@ -359,6 +359,7 @@ function App() {
                     <th style={{ textAlign: "right" }}>估算净值</th>
                     <th style={{ textAlign: "right" }}>成本</th>
                     <th style={{ textAlign: "right" }}>持仓份额</th>
+                    <th style={{ textAlign: "right" }}>仓位占比</th>
                     <th style={{ textAlign: "right" }}>持有收益</th>
                     <th style={{ textAlign: "right" }}>持有收益率</th>
                     <th style={{ textAlign: "right" }}>涨跌幅</th>
@@ -396,6 +397,9 @@ function App() {
                       ? detail.jzrq.slice(5) 
                       : "--";
 
+                    const positionValue = shares * estGsz;
+                    const positionRatio = totalValue > 0 ? (positionValue / totalValue) * 100 : 0;
+
                     return (
                       <tr key={item.code}>
                         <td>
@@ -414,6 +418,9 @@ function App() {
                         </td>
                         <td style={{ textAlign: "right" }} className="flat font-number">
                           {shares > 0 ? shares.toFixed(2) : "--"}
+                        </td>
+                        <td style={{ textAlign: "right" }} className="flat font-number">
+                          {shares > 0 ? positionRatio.toFixed(2) + "%" : "--"}
                         </td>
                         <td style={{ textAlign: "right" }} className={`${getRateClass(holdingProfit)} font-number`}>
                           {holdingProfit > 0 ? "+" : ""}{holdingProfit.toFixed(2)}
