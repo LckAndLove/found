@@ -1,6 +1,7 @@
 node_modules/
 dist/
 release/
+apps/backend/data/
 .DS_Store
 .env
 .env.*

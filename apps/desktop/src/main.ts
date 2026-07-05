@@ -61,6 +61,7 @@ app.whenReady().then(async () => {
   try {
     writeLog("应用启动");
 
+    process.env.FOUND_DB_PATH ??= path.join(app.getPath("userData"), "data", "found.sqlite");
     apiServer = await startApiServer({
       port: Number(process.env.FOUND_API_PORT ?? 4317)
     });
