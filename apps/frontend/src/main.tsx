@@ -466,11 +466,7 @@ function App() {
                     ? (gszzlVal !== null ? shares * dwjz * (gszzlVal / 100) : (detail?.gsz ? shares * (parseFloat(detail.gsz) - dwjz) : 0))
                     : 0;
                       
-                  const updateTime = detail?.gztime 
-                    ? detail.gztime.split(" ")[0].slice(5) // e.g. "07-03"
-                    : detail?.jzrq 
-                    ? detail.jzrq.slice(5) 
-                    : "--";
+                  const updateTime = formatUpdateTime(detail?.gztime, detail?.jzrq);
 
                   const positionValue = shares * estGsz;
                   const positionRatio = totalValue > 0 ? (positionValue / totalValue) * 100 : 0;
@@ -897,6 +893,19 @@ function getShanghaiDateString(date: Date = new Date()): string {
   const month = parts.find((p) => p.type === "month")?.value || "";
   const day = parts.find((p) => p.type === "day")?.value || "";
   return `${year}-${month}-${day}`;
+}
+
+function formatUpdateTime(gztime: string | null | undefined, jzrq: string | null | undefined): string {
+  if (gztime) {
+    const [datePart, timePart] = gztime.split(" ");
+    if (datePart === getShanghaiDateString()) {
+      return timePart?.slice(0, 5) || datePart.slice(5);
+    }
+
+    return datePart.slice(5);
+  }
+
+  return jzrq ? jzrq.slice(5) : "--";
 }
 
 function isTradingDay(date: Date = new Date()): boolean {
