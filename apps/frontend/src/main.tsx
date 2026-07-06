@@ -37,6 +37,8 @@ function App() {
   const [sortKey, setSortKey] = useState<string | null>(null);
   const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
   
+
+  
   const [details, setDetails] = useState<DetailState>({
     data: {},
     loadingCodes: new Set(),
@@ -298,19 +300,20 @@ function App() {
     if (shares && shares > 0) {
       hasHoldings = true;
       const dwjzVal = detail?.dwjz ? parseFloat(detail.dwjz) : 0;
-      const gszVal = detail?.gsz ? parseFloat(detail.gsz) : dwjzVal;
       const costVal = item.costPrice || 0;
 
+      const todayStr = getShanghaiDateString();
+      const isTodayUpdate = detail?.gztime ? detail.gztime.startsWith(todayStr) : false;
+
       const gszzl = typeof detail?.gszzl === "number" ? detail.gszzl : null;
-      const estGsz = todayIsTrading
-        ? (gszzl !== null ? dwjzVal * (1 + gszzl / 100) : gszVal)
+      const estGsz = (todayIsTrading && isTodayUpdate)
+        ? (gszzl !== null ? dwjzVal * (1 + gszzl / 100) : (detail?.gsz ? parseFloat(detail.gsz) : dwjzVal))
         : dwjzVal;
 
       totalValue += shares * estGsz;
       totalCost += shares * costVal;
       
-      if (todayIsTrading && detail) {
-        const gszzl = typeof detail.gszzl === "number" ? detail.gszzl : null;
+      if (todayIsTrading && isTodayUpdate && detail) {
         if (gszzl !== null) {
           totalTodayChange += shares * dwjzVal * (gszzl / 100);
         } else if (detail.gsz) {
@@ -344,13 +347,17 @@ function App() {
     const dwjz = d?.dwjz ? parseFloat(d.dwjz) : 0;
     const gszzlVal = d?.gszzl !== null && d?.gszzl !== undefined
       ? (typeof d.gszzl === "string" ? parseFloat(d.gszzl) : d.gszzl) : null;
-    const rate = todayIsTrading ? (gszzlVal ?? d?.zzl ?? 0) : (d?.zzl ?? 0);
-    const estGsz = todayIsTrading
+    
+    const todayStr = getShanghaiDateString();
+    const isTodayUpdate = d?.gztime ? d.gztime.startsWith(todayStr) : false;
+
+    const rate = (todayIsTrading && isTodayUpdate) ? (gszzlVal ?? d?.zzl ?? 0) : 0;
+    const estGsz = (todayIsTrading && isTodayUpdate)
       ? (gszzlVal !== null ? dwjz * (1 + (gszzlVal as number) / 100) : (d?.gsz ? parseFloat(d.gsz) : dwjz))
       : dwjz;
     const holdingProfit = shares * (dwjz - cost);
     const holdingProfitRate = cost > 0 ? ((dwjz - cost) / cost) * 100 : 0;
-    const estTodayProfit = todayIsTrading
+    const estTodayProfit = (todayIsTrading && isTodayUpdate)
       ? (gszzlVal !== null ? shares * dwjz * ((gszzlVal as number) / 100) : (d?.gsz ? shares * (parseFloat(d.gsz) - dwjz) : 0))
       : 0;
     const positionRatio = totalValue > 0 ? (shares * estGsz / totalValue) * 100 : 0;
@@ -384,144 +391,154 @@ function App() {
 
   return (
     <main className="app-shell">
-      <div className="dashboard-container">
+      {initializing ? (
+        <div className="app-card placeholder-cell">
+          <div className="placeholder-content">
+            <span className="placeholder-icon">📡</span>
+            <h3>正在初始化净值雷达</h3>
+            <p>连接本地 SQLite 数据库，并同步上游最新估算净值...</p>
+          </div>
+        </div>
+      ) : (
         <section className="app-card">
-            {/* 1. Market Indices Bar */}
-            <div className="market-indices-bar">
-              {indices.map((idx, index) => {
-                const changeClass = getRateClass(idx.change);
-                return (
-                  <div key={index} className="index-item">
-                    <span className="index-name">{idx.name}</span>
-                    <span className={`index-value ${changeClass}`}>{idx.value.toFixed(2)}</span>
-                    <div className="index-change-row">
-                      <span className={changeClass}>{idx.change > 0 ? "+" : ""}{idx.change.toFixed(2)}</span>
-                      <span className={changeClass}>{idx.ratio > 0 ? "+" : ""}{idx.ratio.toFixed(2)}%</span>
-                    </div>
+          {/* 1. Market Indices Bar */}
+          <div className="market-indices-bar">
+            {indices.map((idx, index) => {
+              const changeClass = getRateClass(idx.change);
+              return (
+                <div key={index} className="index-item">
+                  <span className="index-name">{idx.name}</span>
+                  <span className={`index-value ${changeClass}`}>{idx.value.toFixed(2)}</span>
+                  <div className="index-change-row">
+                    <span className={changeClass}>{idx.change > 0 ? "+" : ""}{idx.change.toFixed(2)}</span>
+                    <span className={changeClass}>{idx.ratio > 0 ? "+" : ""}{idx.ratio.toFixed(2)}%</span>
                   </div>
-                );
-              })}
-            </div>
+                </div>
+              );
+            })}
+          </div>
 
-            {message ? <p className="notice">{message}</p> : null}
-            {error ? <p className="error">{error}</p> : null}
+          {message ? <p className="notice">{message}</p> : null}
+          {error ? <p className="error">{error}</p> : null}
 
-            {/* 2. Fund Table */}
-            <div className="fund-table-container">
-              <table className="fund-monitor-table">
-                <thead>
-                  <tr>
-                    <th className="sortable-th" style={{ textAlign: "left" }} onClick={() => handleSort("code")}>代码{sortKey==="code" ? (sortDir==="asc" ? " ↑" : " ↓") : " ⇅"}</th>
-                    <th className="sortable-th" style={{ maxWidth: "220px", width: "220px" }} onClick={() => handleSort("name")}>基金名称 ({watchlist.length}){sortKey==="name" ? (sortDir==="asc" ? " ↑" : " ↓") : " ⇅"}</th>
-                    <th className="sortable-th" style={{ textAlign: "right" }} onClick={() => handleSort("gsz")}>估算净值{sortKey==="gsz" ? (sortDir==="asc" ? " ↑" : " ↓") : " ⇅"}</th>
-                    <th className="sortable-th" style={{ textAlign: "right" }} onClick={() => handleSort("cost")}>成本{sortKey==="cost" ? (sortDir==="asc" ? " ↑" : " ↓") : " ⇅"}</th>
-                    <th className="sortable-th" style={{ textAlign: "right" }} onClick={() => handleSort("shares")}>持仓份额{sortKey==="shares" ? (sortDir==="asc" ? " ↑" : " ↓") : " ⇅"}</th>
-                    <th className="sortable-th" style={{ textAlign: "right" }} onClick={() => handleSort("positionRatio")}>仓位占比{sortKey==="positionRatio" ? (sortDir==="asc" ? " ↑" : " ↓") : " ⇅"}</th>
-                    <th className="sortable-th" style={{ textAlign: "right" }} onClick={() => handleSort("holdingProfit")}>持有收益{sortKey==="holdingProfit" ? (sortDir==="asc" ? " ↑" : " ↓") : " ⇅"}</th>
-                    <th className="sortable-th" style={{ textAlign: "right" }} onClick={() => handleSort("holdingProfitRate")}>持有收益率{sortKey==="holdingProfitRate" ? (sortDir==="asc" ? " ↑" : " ↓") : " ⇅"}</th>
-                    <th className="sortable-th" style={{ textAlign: "right" }} onClick={() => handleSort("rate")}>涨跌幅{sortKey==="rate" ? (sortDir==="asc" ? " ↑" : " ↓") : " ⇅"}</th>
-                    <th className="sortable-th" style={{ textAlign: "right" }} onClick={() => handleSort("estTodayProfit")}>估算收益{sortKey==="estTodayProfit" ? (sortDir==="asc" ? " ↑" : " ↓") : " ⇅"}</th>
-                    <th className="sortable-th" style={{ textAlign: "center" }} onClick={() => handleSort("updateTime")}>更新时间{sortKey==="updateTime" ? (sortDir==="asc" ? " ↑" : " ↓") : " ⇅"}</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {sortedWatchlist.map((item) => {
-                    const detail = details.data[item.code];
-                    const shares = item.holdingShares || 0;
-                    const cost = item.costPrice || 0;
-                    const dwjz = detail?.dwjz ? parseFloat(detail.dwjz) : 0;
-                    const gszzlVal = detail?.gszzl !== null && detail?.gszzl !== undefined
-                      ? (typeof detail.gszzl === "string" ? parseFloat(detail.gszzl) : detail.gszzl)
-                      : null;
-                    
-                    const rate = todayIsTrading ? (gszzlVal ?? detail?.zzl) : detail?.zzl;
-                    const rateClass = getRateClass(rate);
-                    
-                    const estGsz = todayIsTrading
-                      ? (gszzlVal !== null ? dwjz * (1 + gszzlVal / 100) : (detail?.gsz ? parseFloat(detail.gsz) : dwjz))
-                      : dwjz;
+          {/* 2. Fund Table */}
+          <div className="fund-table-container">
+            <table className="fund-monitor-table">
+              <thead>
+                <tr>
+                  <th className="sortable-th" style={{ textAlign: "left" }} onClick={() => handleSort("code")}>代码{sortKey==="code" ? (sortDir==="asc" ? " ↑" : " ↓") : " ⇅"}</th>
+                  <th className="sortable-th" style={{ maxWidth: "220px", width: "220px" }} onClick={() => handleSort("name")}>基金名称 ({watchlist.length}){sortKey==="name" ? (sortDir==="asc" ? " ↑" : " ↓") : " ⇅"}</th>
+                  <th className="sortable-th" style={{ textAlign: "right" }} onClick={() => handleSort("gsz")}>估算净值{sortKey==="gsz" ? (sortDir==="asc" ? " ↑" : " ↓") : " ⇅"}</th>
+                  <th className="sortable-th" style={{ textAlign: "right" }} onClick={() => handleSort("cost")}>成本{sortKey==="cost" ? (sortDir==="asc" ? " ↑" : " ↓") : " ⇅"}</th>
+                  <th className="sortable-th" style={{ textAlign: "right" }} onClick={() => handleSort("shares")}>持仓份额{sortKey==="shares" ? (sortDir==="asc" ? " ↑" : " ↓") : " ⇅"}</th>
+                  <th className="sortable-th" style={{ textAlign: "right" }} onClick={() => handleSort("positionRatio")}>仓位占比{sortKey==="positionRatio" ? (sortDir==="asc" ? " ↑" : " ↓") : " ⇅"}</th>
+                  <th className="sortable-th" style={{ textAlign: "right" }} onClick={() => handleSort("holdingProfit")}>持有收益{sortKey==="holdingProfit" ? (sortDir==="asc" ? " ↑" : " ↓") : " ⇅"}</th>
+                  <th className="sortable-th" style={{ textAlign: "right" }} onClick={() => handleSort("holdingProfitRate")}>持有收益率{sortKey==="holdingProfitRate" ? (sortDir==="asc" ? " ↑" : " ↓") : " ⇅"}</th>
+                  <th className="sortable-th" style={{ textAlign: "right" }} onClick={() => handleSort("rate")}>涨跌幅{sortKey==="rate" ? (sortDir==="asc" ? " ↑" : "↓") : " ⇅"}</th>
+                  <th className="sortable-th" style={{ textAlign: "right" }} onClick={() => handleSort("estTodayProfit")}>估算收益{sortKey==="estTodayProfit" ? (sortDir==="asc" ? " ↑" : " ↓") : " ⇅"}</th>
+                  <th className="sortable-th" style={{ textAlign: "center" }} onClick={() => handleSort("updateTime")}>更新时间{sortKey==="updateTime" ? (sortDir==="asc" ? " ↑" : " ↓") : " ⇅"}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {sortedWatchlist.map((item) => {
+                  const detail = details.data[item.code];
+                  const shares = item.holdingShares || 0;
+                  const cost = item.costPrice || 0;
+                  const dwjz = detail?.dwjz ? parseFloat(detail.dwjz) : 0;
+                  const gszzlVal = detail?.gszzl !== null && detail?.gszzl !== undefined
+                    ? (typeof detail.gszzl === "string" ? parseFloat(detail.gszzl) : detail.gszzl)
+                    : null;
+                  
+                  const todayStr = getShanghaiDateString();
+                  const isTodayUpdate = detail?.gztime ? detail.gztime.startsWith(todayStr) : false;
+
+                  const rate = (todayIsTrading && isTodayUpdate) ? (gszzlVal ?? detail?.zzl) : null;
+                  const rateClass = getRateClass(rate);
+                  
+                  const estGsz = (todayIsTrading && isTodayUpdate)
+                    ? (gszzlVal !== null ? dwjz * (1 + gszzlVal / 100) : (detail?.gsz ? parseFloat(detail.gsz) : dwjz))
+                    : dwjz;
                       
-                    const holdingProfit = shares * (dwjz - cost);
-                    const holdingProfitRate = cost > 0 ? ((dwjz - cost) / cost) * 100 : 0;
-                    
-                    const estTodayProfit = todayIsTrading
-                      ? (gszzlVal !== null ? shares * dwjz * (gszzlVal / 100) : (detail?.gsz ? shares * (parseFloat(detail.gsz) - dwjz) : 0))
-                      : 0;
+                  const holdingProfit = shares * (dwjz - cost);
+                  const holdingProfitRate = cost > 0 ? ((dwjz - cost) / cost) * 100 : 0;
                       
-                    const updateTime = detail?.gztime 
-                      ? detail.gztime.split(" ")[0].slice(5) // e.g. "07-03"
-                      : detail?.jzrq 
-                      ? detail.jzrq.slice(5) 
-                      : "--";
+                  const estTodayProfit = (todayIsTrading && isTodayUpdate)
+                    ? (gszzlVal !== null ? shares * dwjz * (gszzlVal / 100) : (detail?.gsz ? shares * (parseFloat(detail.gsz) - dwjz) : 0))
+                    : 0;
+                      
+                  const updateTime = detail?.gztime 
+                    ? detail.gztime.split(" ")[0].slice(5) // e.g. "07-03"
+                    : detail?.jzrq 
+                    ? detail.jzrq.slice(5) 
+                    : "--";
 
-                    const positionValue = shares * estGsz;
-                    const positionRatio = totalValue > 0 ? (positionValue / totalValue) * 100 : 0;
+                  const positionValue = shares * estGsz;
+                  const positionRatio = totalValue > 0 ? (positionValue / totalValue) * 100 : 0;
 
-                    return (
-                      <tr key={item.code}>
-                        <td className="flat font-number">{item.code}</td>
-                        <td>
-                          <div className="fund-name-cell">
-                            <span className="fund-name">{detail?.name ?? item.name ?? "加载中..."}</span>
-                            {isFundSuspended(item.code) && <span className="suspended-badge-sidebar">停申</span>}
-                            {getFundPurchaseLimit(item.code) ? (
-                              <span className="limit-badge-sidebar">限{getFundPurchaseLimit(item.code)?.dailyAmount}</span>
-                            ) : null}
-                          </div>
-                        </td>
-                        <td style={{ textAlign: "right" }} className="flat font-number">
-                          {todayIsTrading ? (detail?.gsz ?? "--") : dwjz.toFixed(4)}
-                        </td>
-                        <td style={{ textAlign: "right" }} className="flat font-number">
-                          {cost > 0 ? cost.toFixed(4) : "--"}
-                        </td>
-                        <td style={{ textAlign: "right" }} className="flat font-number">
-                          {shares > 0 ? shares.toFixed(2) : "--"}
-                        </td>
-                        <td style={{ textAlign: "right" }} className="flat font-number">
-                          {shares > 0 ? positionRatio.toFixed(2) + "%" : "--"}
-                        </td>
-                        <td style={{ textAlign: "right" }} className={`${getRateClass(holdingProfit)} font-number`}>
-                          {holdingProfit > 0 ? "+" : ""}{holdingProfit.toFixed(2)}
-                        </td>
-                        <td style={{ textAlign: "right" }} className={`${getRateClass(holdingProfitRate)} font-number`}>
-                          {holdingProfitRate > 0 ? "+" : ""}{holdingProfitRate.toFixed(2)}%
-                        </td>
-                        <td style={{ textAlign: "right" }} className={`${rateClass} font-number`}>
-                          {formatRate(rate)}
-                        </td>
-                        <td style={{ textAlign: "right" }} className={`${getRateClass(estTodayProfit)} font-number`}>
-                          {estTodayProfit > 0 ? "+" : ""}{estTodayProfit.toFixed(2)}
-                        </td>
-                        <td style={{ textAlign: "center" }} className="flat font-number">
-                          {updateTime}
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
+                  return (
+                    <tr key={item.code}>
+                      <td className="flat font-number">{item.code}</td>
+                      <td>
+                        <div className="fund-name-cell">
+                          <span className="fund-name">{detail?.name ?? item.name ?? "加载中..."}</span>
+                          {isFundSuspended(item.code) && <span className="suspended-badge-sidebar">停申</span>}
+                          {getFundPurchaseLimit(item.code) ? (
+                            <span className="limit-badge-sidebar">限{getFundPurchaseLimit(item.code)?.dailyAmount}</span>
+                          ) : null}
+                        </div>
+                      </td>
+                      <td style={{ textAlign: "right" }} className="flat font-number">
+                        {(todayIsTrading && isTodayUpdate) ? (detail?.gsz ?? "--") : dwjz.toFixed(4)}
+                      </td>
+                      <td style={{ textAlign: "right" }} className="flat font-number">
+                        {cost > 0 ? cost.toFixed(4) : "--"}
+                      </td>
+                      <td style={{ textAlign: "right" }} className="flat font-number">
+                        {shares > 0 ? shares.toFixed(2) : "--"}
+                      </td>
+                      <td style={{ textAlign: "right" }} className="flat font-number">
+                        {shares > 0 ? positionRatio.toFixed(2) + "%" : "--"}
+                      </td>
+                      <td style={{ textAlign: "right" }} className={`${getRateClass(holdingProfit)} font-number`}>
+                        {holdingProfit > 0 ? "+" : ""}{holdingProfit.toFixed(2)}
+                      </td>
+                      <td style={{ textAlign: "right" }} className={`${getRateClass(holdingProfitRate)} font-number`}>
+                        {holdingProfitRate > 0 ? "+" : ""}{holdingProfitRate.toFixed(2)}%
+                      </td>
+                      <td style={{ textAlign: "right" }} className={`${rateClass} font-number`}>
+                        {rate !== null ? formatRate(rate) : "--"}
+                      </td>
+                      <td style={{ textAlign: "right" }} className={`${getRateClass(estTodayProfit)} font-number`}>
+                        {(todayIsTrading && isTodayUpdate) ? (estTodayProfit > 0 ? "+" : "") + estTodayProfit.toFixed(2) : "--"}
+                      </td>
+                      <td style={{ textAlign: "center" }} className="flat font-number">
+                        {updateTime}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+
+          {/* 3. Summary Bottom Bar */}
+          <div className="monitor-summary-bar">
+            <div className="summary-item total-box">
+              总金额:<span className="val-text">¥ {totalValue.toLocaleString("zh-CN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
             </div>
-
-            {/* 3. Summary Bottom Bar */}
-            <div className="monitor-summary-bar">
-              <div className="summary-item total-box">
-                总金额:<span className="val-text">¥ {totalValue.toLocaleString("zh-CN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-              </div>
-              <div className={`summary-item today-box ${getRateClass(totalTodayChange)}`}>
-                日收益:<span className={`val-text ${getRateClass(totalTodayChange)}`}>
-                  {totalTodayChange > 0 ? "+" : ""}{totalTodayChange.toFixed(2)}({totalTodayChange >= 0 ? "+" : ""}{dailyChangeRate.toFixed(2)}%)
-                </span>
-              </div>
-              <div className={`summary-item holding-box ${getRateClass(totalGainLoss)}`}>
-                持有收益:<span className={`val-text ${getRateClass(totalGainLoss)}`}>
-                  {totalGainLoss > 0 ? "+" : ""}{totalGainLoss.toFixed(2)}({totalReturnRate >= 0 ? "+" : ""}{totalReturnRate.toFixed(2)}%)
-                </span>
-              </div>
-
+            <div className={`summary-item today-box ${getRateClass(totalTodayChange)}`}>
+              日收益:<span className={`val-text ${getRateClass(totalTodayChange)}`}>
+                {totalTodayChange > 0 ? "+" : ""}{totalTodayChange.toFixed(2)}({totalTodayChange >= 0 ? "+" : ""}{dailyChangeRate.toFixed(2)}%)
+              </span>
             </div>
+            <div className={`summary-item holding-box ${getRateClass(totalGainLoss)}`}>
+              持有收益:<span className={`val-text ${getRateClass(totalGainLoss)}`}>
+                {totalGainLoss > 0 ? "+" : ""}{totalGainLoss.toFixed(2)}({totalReturnRate >= 0 ? "+" : ""}{totalReturnRate.toFixed(2)}%)
+              </span>
+            </div>
+          </div>
         </section>
-      </div>
+      )}
     </main>
   );
 }
@@ -623,8 +640,11 @@ function FundSummary(props: {
   
   // Resolve EastMoney stale gsz base price discrepancy using gszzl rate
   const gszzl = typeof detail?.gszzl === "number" ? detail.gszzl : null;
+  const todayStr = getShanghaiDateString();
+  const isTodayUpdate = detail?.gztime ? detail.gztime.startsWith(todayStr) : false;
+
   const estGsz =
-    todayIsTrading
+    (todayIsTrading && isTodayUpdate)
       ? (gszzl !== null ? dwjzNum * (1 + gszzl / 100) : gszNum)
       : dwjzNum;
 
@@ -632,7 +652,7 @@ function FundSummary(props: {
   const totalProfit = sharesNum * (dwjzNum - costNum);
   
   const estTodayProfit =
-    todayIsTrading
+    (todayIsTrading && isTodayUpdate)
       ? (gszzl !== null
           ? sharesNum * dwjzNum * (gszzl / 100)
           : detail?.gsz
@@ -685,12 +705,12 @@ function FundSummary(props: {
           </div>
           <div>
             <dt>估算净值</dt>
-            <dd>{todayIsTrading ? (detail?.gsz ?? "--") : "--"}</dd>
+            <dd>{(todayIsTrading && isTodayUpdate) ? (detail?.gsz ?? "--") : "--"}</dd>
           </div>
           <div>
             <dt>今日预估盈亏</dt>
             <dd className={getRateClass(estTodayProfit)}>
-              {(detail?.gszzl !== null && detail?.gszzl !== undefined) || detail?.gsz
+              {(todayIsTrading && isTodayUpdate) && ((detail?.gszzl !== null && detail?.gszzl !== undefined) || detail?.gsz)
                 ? `${estTodayProfit >= 0 ? "+" : ""}${estTodayProfit.toFixed(2)} 元`
                 : "--"}
             </dd>
@@ -863,6 +883,20 @@ function getFundPurchaseLimit(code: string | null | undefined): { dailyAmount: n
   };
 
   return code ? limits[code] ?? null : null;
+}
+
+function getShanghaiDateString(date: Date = new Date()): string {
+  const formatter = new Intl.DateTimeFormat("zh-CN", {
+    timeZone: "Asia/Shanghai",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit"
+  });
+  const parts = formatter.formatToParts(date);
+  const year = parts.find((p) => p.type === "year")?.value || "";
+  const month = parts.find((p) => p.type === "month")?.value || "";
+  const day = parts.find((p) => p.type === "day")?.value || "";
+  return `${year}-${month}-${day}`;
 }
 
 function isTradingDay(date: Date = new Date()): boolean {
