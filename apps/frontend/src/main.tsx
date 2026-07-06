@@ -89,14 +89,14 @@ function App() {
     };
   }, []);
 
-  // Auto-refresh interval (60 seconds, active only during China stock market trading hours)
+  // Auto-refresh interval (60 seconds, active only during China stock market trading days)
   useEffect(() => {
     if (watchlist.length === 0) {
       return;
     }
 
     const interval = setInterval(() => {
-      if (isTradingTime()) {
+      if (isTradingDay()) {
         watchlist.forEach((item) => {
           void loadDetail(item.code);
           void loadIntraday(item.code);
@@ -117,7 +117,7 @@ function App() {
   useEffect(() => {
     loadIndices();
     const interval = setInterval(() => {
-      if (isTradingTime()) {
+      if (isTradingDay()) {
         loadIndices();
       }
     }, 60000);
@@ -946,30 +946,6 @@ function isTradingDay(date: Date = new Date()): boolean {
   }
 
   return true;
-}
-
-function isTradingTime(date: Date = new Date()): boolean {
-  if (!isTradingDay(date)) {
-    return false;
-  }
-
-  const formatter = new Intl.DateTimeFormat("zh-CN", {
-    timeZone: "Asia/Shanghai",
-    hour: "2-digit",
-    minute: "2-digit",
-    hour12: false
-  });
-  const parts = formatter.formatToParts(date);
-  const findPart = (type: string) => parseInt(parts.find((p) => p.type === type)?.value || "0", 10);
-  
-  const hour = findPart("hour");
-  const minute = findPart("minute");
-
-  const timeInMinutes = hour * 60 + minute;
-  const isMorning = timeInMinutes >= 9 * 60 + 30 && timeInMinutes <= 11 * 60 + 30;
-  const isAfternoon = timeInMinutes >= 13 * 60 && timeInMinutes <= 15 * 60;
-  
-  return isMorning || isAfternoon;
 }
 
 function getRateClass(value: number | string | null | undefined): string {
