@@ -163,8 +163,8 @@ export function createApiApp() {
     "/api/notify/mail",
     asyncHandler(async (request, response) => {
       const subject = optionalTrimmedString(request.body?.subject, "subject") ?? `${appConfig.app.name} 今日净值汇总`;
-      const funds: Array<{ code: string; name: string; nav: string; zzl: string; zzlRaw: number; dailyProfit: string | null }> =
-        Array.isArray(request.body?.funds) ? (request.body.funds as Array<{ code: string; name: string; nav: string; zzl: string; zzlRaw: number; dailyProfit: string | null }>) : [];
+      const funds: Array<{ code: string; name: string; nav: string; zzl: string; zzlRaw: number; dailyProfit: string | null; isSettled?: boolean }> =
+        Array.isArray(request.body?.funds) ? (request.body.funds as Array<{ code: string; name: string; nav: string; zzl: string; zzlRaw: number; dailyProfit: string | null; isSettled?: boolean }>) : [];
       const totalDailyProfit: string = optionalTrimmedString(request.body?.totalDailyProfit, "totalDailyProfit") ?? "";
 
       const runScript = (script: string) =>
@@ -181,7 +181,10 @@ export function createApiApp() {
         const rC = up ? "#ff6b6b" : dn ? "#81c995" : "#b0b3b8";
         const rB = up ? "rgba(255,107,107,0.15)" : dn ? "rgba(129,201,149,0.15)" : "#2a2a2a";
         const pC = f.dailyProfit ? (f.dailyProfit.startsWith("+") ? "#ff6b6b" : f.dailyProfit.startsWith("-") ? "#81c995" : "#b0b3b8") : "#b0b3b8";
-        return `<tr><td style="padding:12px 16px;border-bottom:1px solid #333333;max-width:260px;"><div style="font-size:13px;font-weight:600;color:#f0f0f0;margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${f.name}</div><div style="font-size:11px;color:#888888;font-family:monospace;">${f.code}</div></td><td style="padding:12px 16px;border-bottom:1px solid #333333;text-align:center;white-space:nowrap;"><span style="display:inline-block;padding:4px 10px;border-radius:6px;font-size:12px;font-weight:700;background:${rB};color:${rC};">${f.zzl}</span></td><td style="padding:12px 16px;border-bottom:1px solid #333333;text-align:right;font-family:monospace;font-size:13px;font-weight:700;color:${pC};white-space:nowrap;">${f.dailyProfit != null ? `&yen;&nbsp;${f.dailyProfit}` : "&mdash;"}</td></tr>`;
+        const statusBadge = f.isSettled
+          ? `<span style="display:inline-block;font-size:10px;font-weight:700;color:#81c995;background:rgba(129,201,149,0.15);padding:1px 4px;border-radius:4px;margin-left:6px;vertical-align:middle;white-space:nowrap;">已更新</span>`
+          : `<span style="display:inline-block;font-size:10px;font-weight:700;color:#888888;background:#2a2a2a;padding:1px 4px;border-radius:4px;margin-left:6px;vertical-align:middle;white-space:nowrap;">估算中</span>`;
+        return `<tr><td style="padding:12px 16px;border-bottom:1px solid #333333;max-width:260px;"><div style="font-size:13px;font-weight:600;color:#f0f0f0;margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${f.name}</div><div style="font-size:11px;color:#888888;font-family:monospace;"><span style="vertical-align:middle;">${f.code}</span>${statusBadge}</div></td><td style="padding:12px 16px;border-bottom:1px solid #333333;text-align:center;white-space:nowrap;"><span style="display:inline-block;padding:4px 10px;border-radius:6px;font-size:12px;font-weight:700;background:${rB};color:${rC};">${f.zzl}</span></td><td style="padding:12px 16px;border-bottom:1px solid #333333;text-align:right;font-family:monospace;font-size:13px;font-weight:700;color:${pC};white-space:nowrap;">${f.dailyProfit != null ? `&yen;&nbsp;${f.dailyProfit}` : "&mdash;"}</td></tr>`;
       }).join("");
 
       const tC = totalDailyProfit.startsWith("+") ? "#ff6b6b" : totalDailyProfit.startsWith("-") ? "#81c995" : "#b0b3b8";

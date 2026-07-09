@@ -145,6 +145,8 @@ function App() {
                 ? shares * dwjz * (zzlRaw / 100) / (1 + zzlRaw / 100)
                 : null;
               if (dailyP != null) totalDailyProfit += dailyP;
+              const isQDII_fund = d?.name ? d.name.includes("QDII") : false;
+              const isSettled = getFundStatus(d?.jzrq, d?.gztime, isQDII_fund).className === "row-settled";
               return {
                 code: item.code,
                 name: d?.name ?? item.code,
@@ -152,6 +154,7 @@ function App() {
                 zzl: zzlRaw !== 0 ? `${zzlRaw > 0 ? "+" : ""}${zzlRaw.toFixed(2)}%` : "0.00%",
                 zzlRaw,
                 dailyProfit: dailyP != null ? (dailyP >= 0 ? "+" : "") + dailyP.toFixed(2) : null,
+                isSettled,
               };
             });
             const totalStr = totalDailyProfit >= 0
@@ -437,6 +440,7 @@ function App() {
           zzl: zzlRaw !== 0 ? `${zzlRaw > 0 ? "+" : ""}${zzlRaw.toFixed(2)}%` : "0.00%",
           zzlRaw,
           dailyProfit: dailyP != null ? (dailyP >= 0 ? "+" : "") + dailyP.toFixed(2) : null,
+          isSettled,
         };
       });
     const totalStr = totalDailyProfit >= 0 ? `+${totalDailyProfit.toFixed(2)}` : totalDailyProfit.toFixed(2);

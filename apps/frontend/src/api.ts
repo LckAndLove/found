@@ -168,6 +168,7 @@ export type MailFundItem = {
   zzl: string;
   zzlRaw: number;
   dailyProfit: string | null;
+  isSettled?: boolean;
 };
 
 export async function sendMailNotification(input: { subject?: string; funds?: MailFundItem[]; totalDailyProfit?: string }) {
