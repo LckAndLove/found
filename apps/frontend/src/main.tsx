@@ -1,4 +1,4 @@
-import { StrictMode, useEffect, useState } from "react";
+import { StrictMode, useEffect, useState, useRef } from "react";
 import { createRoot } from "react-dom/client";
 import {
   addWatchlistItem,
@@ -44,6 +44,11 @@ function App() {
     loadingCodes: new Set(),
     errorByCode: {}
   });
+
+  const detailsRef = useRef(details);
+  useEffect(() => {
+    detailsRef.current = details;
+  }, [details]);
 
   const [intradayData, setIntradayData] = useState<Record<string, IntradayResponse>>({});
   const [loadingIntraday, setLoadingIntraday] = useState<Set<string>>(new Set());
@@ -98,7 +103,7 @@ function App() {
     const interval = setInterval(() => {
       if (isTradingDay()) {
         watchlist.forEach((item) => {
-          const detail = details.data[item.code];
+          const detail = detailsRef.current.data[item.code];
           if (detail) {
             const isQDII = detail.name ? detail.name.includes("QDII") : false;
             const status = getFundStatus(detail.jzrq, detail.gztime, isQDII);
