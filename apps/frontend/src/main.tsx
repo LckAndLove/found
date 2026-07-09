@@ -446,7 +446,6 @@ function App() {
       funds,
       totalDailyProfit: totalStr,
     }).catch(() => {});
-    setMessage("📧 快照邮件已发送！");
   };
 
   const handleSort = (key: string) => {
@@ -658,17 +657,16 @@ function App() {
             <div className="summary-item total-box">
               总金额:<span className="val-text">¥ {totalValue.toLocaleString("zh-CN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
             </div>
-            <button
+            <div
               className={`summary-item today-box ${getRateClass(totalTodayChange)}`}
               onClick={handleSendMailSnapshot}
-              title="点击发送当前快照邮件 📧"
-              style={{ cursor: "pointer", border: "none", background: "none", font: "inherit", padding: 0 }}
+              title="点击发送当前快照邮件"
+              style={{ cursor: "pointer" }}
             >
               日收益:<span className={`val-text ${getRateClass(totalTodayChange)}`}>
                 {totalTodayChange > 0 ? "+" : ""}{totalTodayChange.toFixed(2)}({totalTodayChange >= 0 ? "+" : ""}{dailyChangeRate.toFixed(2)}%)
               </span>
-              <span style={{ marginLeft: 4, opacity: 0.5, fontSize: "0.7em" }}>📧</span>
-            </button>
+            </div>
             <div className={`summary-item holding-box ${getRateClass(totalGainLoss)}`}>
               持有收益:<span className={`val-text ${getRateClass(totalGainLoss)}`}>
                 {totalGainLoss > 0 ? "+" : ""}{totalGainLoss.toFixed(2)}({totalReturnRate >= 0 ? "+" : ""}{totalReturnRate.toFixed(2)}%)
