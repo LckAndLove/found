@@ -102,7 +102,7 @@ function App() {
           void loadIntraday(item.code);
         });
       }
-    }, 60000);
+    }, 10000);
 
     return () => clearInterval(interval);
   }, [watchlist]);
@@ -120,7 +120,7 @@ function App() {
       if (isTradingDay()) {
         loadIndices();
       }
-    }, 60000);
+    }, 10000);
     return () => clearInterval(interval);
   }, []);
 
