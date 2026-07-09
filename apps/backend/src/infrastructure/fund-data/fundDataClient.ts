@@ -46,6 +46,7 @@ export type FundDataClient = {
   getHoldings(code: string): Promise<FundHolding[]>;
   getHistoryTrend(code: string): Promise<FundHistoryTrend>;
   getNetValue(code: string, date: string): Promise<FundNetValue>;
+  getLatestNetValue(code: string): Promise<{ date: string; value: number } | null>;
   getNetValuesInRange(code: string, startDate: string, endDate: string, limit?: number): Promise<FundNetValue[]>;
   getIntraday(code: string): Promise<{ date: string | null; items: IntradayPoint[] }>;
   getShanghaiIndexDate(): Promise<string | null>;
@@ -188,6 +189,38 @@ export function createFundDataClient(http: UpstreamHttpClient): FundDataClient {
         date,
         value: Number.isFinite(value) ? value : null
       };
+    },
+
+    async getLatestNetValue(code) {
+      const url = new URL("https://fundf10.eastmoney.com/F10DataApi.aspx");
+      url.searchParams.set("type", "lsjz");
+      url.searchParams.set("code", code);
+      url.searchParams.set("page", "1");
+      url.searchParams.set("per", "1");
+      url.searchParams.set("_", Date.now().toString());
+
+      try {
+        const content = parseApidataContent(await http.getText(url));
+        if (!content || content.includes("暂无数据")) {
+          return null;
+        }
+
+        const rows = content.match(/<tr[^>]*>[\s\S]*?<\/tr>/gi) || [];
+        if (rows.length > 1) {
+          const cells = rows[1].match(/<td[^>]*>[\s\S]*?<\/td>/gi) || [];
+          const dateText = cells[0]?.replace(/<[^>]+>/g, "").trim();
+          const valueText = cells[1]?.replace(/<[^>]+>/g, "").trim();
+          if (dateText && valueText) {
+            const value = Number.parseFloat(valueText);
+            if (Number.isFinite(value)) {
+              return { date: dateText, value };
+            }
+          }
+        }
+        return null;
+      } catch {
+        return null;
+      }
     },
 
     async getIntraday(code) {

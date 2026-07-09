@@ -53,13 +53,15 @@ export function createFundService(dataClient: FundDataClient, watchlistRepositor
     async getFundDetail(code, options = {}) {
       const includeHoldings = options.includeHoldings ?? true;
       const includeTrend = options.includeTrend ?? true;
-      const [valuationResult, fallbackResult] = await Promise.allSettled([
+      const [valuationResult, fallbackResult, latestNetResult] = await Promise.allSettled([
         dataClient.getValuation(code),
-        dataClient.getTencentFundQuote(code)
+        dataClient.getTencentFundQuote(code),
+        dataClient.getLatestNetValue(code)
       ]);
 
       const valuation = fulfilledValue(valuationResult);
       const fallback = fulfilledValue(fallbackResult);
+      const latestNet = fulfilledValue(latestNetResult);
       const primaryErrors = [rejectedReason(valuationResult), rejectedReason(fallbackResult)].filter(Boolean);
 
       if (!valuation && !fallback) {
@@ -78,6 +80,12 @@ export function createFundService(dataClient: FundDataClient, watchlistRepositor
       ]);
 
       const detail = buildFundDetail(code, valuation, fallback, holdings, trendData);
+
+      // 数据融合逻辑：选择日期最新（最靠近今天）的价格作为最终单位净值
+      if (latestNet?.date && (!detail.jzrq || latestNet.date >= detail.jzrq)) {
+        detail.dwjz = String(latestNet.value);
+        detail.jzrq = latestNet.date;
+      }
 
       if (fallback?.jzrq && (!detail.jzrq || fallback.jzrq >= detail.jzrq)) {
         detail.dwjz = fallback.dwjz;
