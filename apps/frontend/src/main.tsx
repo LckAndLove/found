@@ -17,7 +17,8 @@ import {
   type FundWatchlistItem,
   type HealthResponse,
   type IntradayResponse,
-  type MarketIndex
+  type MarketIndex,
+  type MailFundItem
 } from "./api";
 import { appConfig } from "./config";
 import { IntradayChart, HistoryTrendChart } from "./SvgChart";
@@ -402,6 +403,52 @@ function App() {
   const yesterdayTotalValue = totalValue - totalTodayChange;
   const dailyChangeRate = yesterdayTotalValue > 0 ? (totalTodayChange / yesterdayTotalValue) * 100 : 0;
 
+  const handleSendMailSnapshot = () => {
+    const currentDetails = detailsRef.current.data;
+    const todayIsTrading2 = isTradingDay();
+    let totalDailyProfit = 0;
+    const funds: MailFundItem[] = watchlist
+      .filter((item) => (item.holdingShares ?? 0) > 0)
+      .map((item) => {
+        const d = currentDetails[item.code];
+        const dwjz = d?.dwjz ? parseFloat(d.dwjz) : 0;
+        const gszzlVal = d?.gszzl !== null && d?.gszzl !== undefined
+          ? (typeof d.gszzl === "string" ? parseFloat(d.gszzl) : d.gszzl) : null;
+        const todayStr = getShanghaiDateString();
+        const isTodayUpdate = d?.gztime ? d.gztime.startsWith(todayStr) : false;
+        const isQDII = d?.name ? d.name.includes("QDII") : false;
+        const isSettled = getFundStatus(d?.jzrq, d?.gztime, isQDII).className === "row-settled";
+        const zzlRaw = isSettled
+          ? (d?.zzl != null ? Number(d.zzl) : 0)
+          : ((todayIsTrading2 && isTodayUpdate) ? (gszzlVal ?? 0) : 0);
+        const shares = item.holdingShares ?? 0;
+        const estGsz = isSettled ? dwjz
+          : ((todayIsTrading2 && isTodayUpdate)
+            ? (gszzlVal !== null ? dwjz * (1 + gszzlVal / 100) : (d?.gsz ? parseFloat(d.gsz) : dwjz))
+            : dwjz);
+        const dailyP = shares > 0 && estGsz > 0
+          ? shares * estGsz * (zzlRaw / 100) / (1 + zzlRaw / 100)
+          : null;
+        if (dailyP != null) totalDailyProfit += dailyP;
+        return {
+          code: item.code,
+          name: d?.name ?? item.code,
+          nav: isSettled ? (d?.dwjz ?? "--") : ((todayIsTrading2 && isTodayUpdate && d?.gsz) ? d.gsz : (d?.dwjz ?? "--")),
+          zzl: zzlRaw !== 0 ? `${zzlRaw > 0 ? "+" : ""}${zzlRaw.toFixed(2)}%` : "0.00%",
+          zzlRaw,
+          dailyProfit: dailyP != null ? (dailyP >= 0 ? "+" : "") + dailyP.toFixed(2) : null,
+        };
+      });
+    const totalStr = totalDailyProfit >= 0 ? `+${totalDailyProfit.toFixed(2)}` : totalDailyProfit.toFixed(2);
+    const todayLabel = new Date().toLocaleDateString("zh-CN", { month: "2-digit", day: "2-digit" });
+    void sendMailNotification({
+      subject: `净值雷达 ${todayLabel} 当前快照`,
+      funds,
+      totalDailyProfit: totalStr,
+    }).catch(() => {});
+    setMessage("📧 快照邮件已发送！");
+  };
+
   const handleSort = (key: string) => {
     if (sortKey === key) {
       setSortDir(d => d === "asc" ? "desc" : "asc");
@@ -611,11 +658,17 @@ function App() {
             <div className="summary-item total-box">
               总金额:<span className="val-text">¥ {totalValue.toLocaleString("zh-CN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
             </div>
-            <div className={`summary-item today-box ${getRateClass(totalTodayChange)}`}>
+            <button
+              className={`summary-item today-box ${getRateClass(totalTodayChange)}`}
+              onClick={handleSendMailSnapshot}
+              title="点击发送当前快照邮件 📧"
+              style={{ cursor: "pointer", border: "none", background: "none", font: "inherit", padding: 0 }}
+            >
               日收益:<span className={`val-text ${getRateClass(totalTodayChange)}`}>
                 {totalTodayChange > 0 ? "+" : ""}{totalTodayChange.toFixed(2)}({totalTodayChange >= 0 ? "+" : ""}{dailyChangeRate.toFixed(2)}%)
               </span>
-            </div>
+              <span style={{ marginLeft: 4, opacity: 0.5, fontSize: "0.7em" }}>📧</span>
+            </button>
             <div className={`summary-item holding-box ${getRateClass(totalGainLoss)}`}>
               持有收益:<span className={`val-text ${getRateClass(totalGainLoss)}`}>
                 {totalGainLoss > 0 ? "+" : ""}{totalGainLoss.toFixed(2)}({totalReturnRate >= 0 ? "+" : ""}{totalReturnRate.toFixed(2)}%)
