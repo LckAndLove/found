@@ -164,31 +164,34 @@ export function createApiApp() {
     asyncHandler(async (request, response) => {
       const subject = optionalTrimmedString(request.body?.subject, "subject") ?? `${appConfig.app.name} 今日净值汇总`;
       const body = optionalTrimmedString(request.body?.body, "body") ?? "";
-      const to = optionalTrimmedString(request.body?.to, "to") ?? "";
 
       // 转义 AppleScript 字符串中的特殊字符
       const esc = (s: string) => s.replace(/\\/g, "\\\\").replace(/"/g, '\\"').replace(/\n/g, "\\n");
 
-      const script = to
-        ? `tell application "Mail"
+      const runScript = (script: string) =>
+        new Promise<string>((resolve, reject) => {
+          exec(`osascript -e '${script.replace(/'/g, "'\"'\"'")}'`, (error, stdout) => {
+            if (error) { reject(error); } else { resolve(stdout.trim()); }
+          });
+        });
+
+      // 第一步：从 Mail.app 账号1 自动读取用户自己的邮件地址
+      const selfEmail = await runScript(
+        `tell application "Mail" to get email address of account 1`
+      );
+
+      // 第二步：静默发给自己
+      const sendScript = `tell application "Mail"
   set m to make new outgoing message with properties {subject:"${esc(subject)}", content:"${esc(body)}", visible:false}
   tell m
-    make new to recipient with properties {address:"${esc(to)}"}
+    make new to recipient with properties {address:"${esc(selfEmail)}"}
   end tell
   send m
-end tell`
-        : `tell application "Mail"
-  set m to make new outgoing message with properties {subject:"${esc(subject)}", content:"${esc(body)}", visible:true}
-  activate
 end tell`;
 
-      await new Promise<void>((resolve, reject) => {
-        exec(`osascript -e '${script.replace(/'/g, "'\"'\"'")}'`, (error) => {
-          if (error) { reject(error); } else { resolve(); }
-        });
-      });
+      await runScript(sendScript);
 
-      response.json({ ok: true });
+      response.json({ ok: true, to: selfEmail });
     })
   );
 
