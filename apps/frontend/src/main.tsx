@@ -506,9 +506,9 @@ function App() {
                       <td>
                         <div className="fund-name-cell">
                           <span className="fund-name">{detail?.name ?? item.name ?? "加载中..."}</span>
-                          {isFundSuspended(item.code) && <span className="suspended-badge-sidebar">停申</span>}
-                          {getFundPurchaseLimit(item.code) ? (
-                            <span className="limit-badge-sidebar">限{getFundPurchaseLimit(item.code)?.dailyAmount}</span>
+                          {isFundSuspended(item.code, detail?.sgzt) && <span className="suspended-badge-sidebar">停申</span>}
+                          {getFundPurchaseLimit(item.code, detail?.sgzt) ? (
+                            <span className="limit-badge-sidebar">{getFundPurchaseLimit(item.code, detail?.sgzt)?.label}</span>
                           ) : null}
                         </div>
                       </td>
@@ -707,12 +707,14 @@ function FundSummary(props: {
           <small>{props.code}</small>
           <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap", marginTop: 4 }}>
             <h2 style={{ margin: 0 }}>{detail?.name ?? props.fallbackName}</h2>
-            {isFundSuspended(props.code) && (
+            {isFundSuspended(props.code, detail?.sgzt) && (
               <span className="suspended-badge-detail">暂停申购</span>
             )}
-            {getFundPurchaseLimit(props.code) ? (
+            {getFundPurchaseLimit(props.code, detail?.sgzt) ? (
               <span className="limit-badge-detail">
-                每日限购{getFundPurchaseLimit(props.code)?.dailyAmount}元
+                {getFundPurchaseLimit(props.code, detail?.sgzt)?.dailyAmount 
+                  ? `每日限购${getFundPurchaseLimit(props.code, detail?.sgzt)?.dailyAmount}元` 
+                  : "限制大额申购"}
               </span>
             ) : null}
           </div>
@@ -899,18 +901,38 @@ function FundSummary(props: {
   );
 }
 
-function isFundSuspended(code: string | null | undefined): boolean {
+function isFundSuspended(code: string | null | undefined, sgzt: string | null | undefined): boolean {
+  if (sgzt) {
+    return sgzt === "暂停申购" || sgzt.includes("暂停");
+  }
   return code === "012922" || code === "012920";
 }
 
-function getFundPurchaseLimit(code: string | null | undefined): { dailyAmount: number } | null {
-  const limits: Record<string, { dailyAmount: number }> = {
-    "006503": { dailyAmount: 100 },
-    "021528": { dailyAmount: 100 },
-    "017641": { dailyAmount: 10 }
+function getFundPurchaseLimit(code: string | null | undefined, sgzt: string | null | undefined): { dailyAmount?: number; label: string } | null {
+  const isLimit = sgzt ? (sgzt === "限制大额申购" || sgzt.includes("限制") || sgzt.includes("大额")) : false;
+  const limits: Record<string, number> = {
+    "006503": 100,
+    "021528": 100,
+    "017641": 10
   };
 
-  return code ? limits[code] ?? null : null;
+  if (isLimit) {
+    const val = code ? limits[code] : undefined;
+    return {
+      dailyAmount: val,
+      label: val ? `限${val}` : "限额"
+    };
+  }
+
+  // Fallback before sgzt loads
+  if (!sgzt && code && limits[code] !== undefined) {
+    return {
+      dailyAmount: limits[code],
+      label: `限${limits[code]}`
+    };
+  }
+
+  return null;
 }
 
 function getShanghaiDateString(date: Date = new Date()): string {

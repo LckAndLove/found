@@ -46,7 +46,7 @@ export type FundDataClient = {
   getHoldings(code: string): Promise<FundHolding[]>;
   getHistoryTrend(code: string): Promise<FundHistoryTrend>;
   getNetValue(code: string, date: string): Promise<FundNetValue>;
-  getLatestNetValue(code: string): Promise<{ date: string; value: number; zzl: number | null } | null>;
+  getLatestNetValue(code: string): Promise<{ date: string; value: number; zzl: number | null; sgzt: string | null } | null>;
   getNetValuesInRange(code: string, startDate: string, endDate: string, limit?: number): Promise<FundNetValue[]>;
   getIntraday(code: string): Promise<{ date: string | null; items: IntradayPoint[] }>;
   getShanghaiIndexDate(): Promise<string | null>;
@@ -210,12 +210,18 @@ export function createFundDataClient(http: UpstreamHttpClient): FundDataClient {
           const cells = rows[1].match(/<td[^>]*>[\s\S]*?<\/td>/gi) || [];
           const dateText = cells[0]?.replace(/<[^>]+>/g, "").trim();
           const valueText = cells[1]?.replace(/<[^>]+>/g, "").trim();
-          const zzlText = cells[3]?.replace(/<[^>]+>/g, "").trim(); // 第四列是日增长率，例如 "4.55%" 或 "-0.74%"
+          const zzlText = cells[3]?.replace(/<[^>]+>/g, "").trim();
+          const sgztText = cells[4]?.replace(/<[^>]+>/g, "").trim(); // 第五列是申购状态，例如 "暂停申购"、"限制大额申购"
           if (dateText && valueText) {
             const value = Number.parseFloat(valueText);
             const zzl = zzlText ? Number.parseFloat(zzlText.replace("%", "")) : null;
             if (Number.isFinite(value)) {
-              return { date: dateText, value, zzl: Number.isFinite(zzl) ? zzl : null };
+              return { 
+                date: dateText, 
+                value, 
+                zzl: Number.isFinite(zzl) ? zzl : null,
+                sgzt: sgztText || null
+              };
             }
           }
         }

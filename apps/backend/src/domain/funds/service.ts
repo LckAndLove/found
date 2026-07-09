@@ -89,6 +89,9 @@ export function createFundService(dataClient: FundDataClient, watchlistRepositor
           detail.zzl = latestNet.zzl;
         }
       }
+      if (latestNet?.sgzt) {
+        detail.sgzt = latestNet.sgzt;
+      }
 
       if (fallback?.jzrq && (!detail.jzrq || fallback.jzrq >= detail.jzrq)) {
         detail.dwjz = fallback.dwjz;
@@ -178,7 +181,8 @@ function buildFundDetail(
       noValuation: false,
       holdings,
       historyTrend: trendData.historyTrend,
-      yesterdayChange: trendData.yesterdayChange
+      yesterdayChange: trendData.yesterdayChange,
+      sgzt: null
     };
   }
 
@@ -194,7 +198,8 @@ function buildFundDetail(
     noValuation: true,
     holdings,
     historyTrend: trendData.historyTrend,
-    yesterdayChange: trendData.yesterdayChange
+    yesterdayChange: trendData.yesterdayChange,
+    sgzt: null
   };
 }
 

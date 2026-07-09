@@ -21,6 +21,7 @@ export type FundDetail = {
   holdings: FundHolding[];
   historyTrend: FundTrendPoint[];
   yesterdayChange: number | null;
+  sgzt: string | null;
 };
 
 export type FundHolding = {
