@@ -486,6 +486,10 @@ function App() {
                         ? (gszzlVal !== null ? dwjz * (1 + gszzlVal / 100) : (detail?.gsz ? parseFloat(detail.gsz) : dwjz))
                         : dwjz);
                       
+                  const gszClass = (cost > 0 && estGsz > 0)
+                    ? (estGsz > cost ? "up" : (estGsz < cost ? "down" : "flat"))
+                    : "flat";
+
                   const holdingProfit = shares * (dwjz - cost);
                   const holdingProfitRate = cost > 0 ? ((dwjz - cost) / cost) * 100 : 0;
                       
@@ -512,7 +516,7 @@ function App() {
                           ) : null}
                         </div>
                       </td>
-                      <td style={{ textAlign: "right" }} className="flat font-number">
+                      <td style={{ textAlign: "right" }} className={`${gszClass} font-number`}>
                         {(todayIsTrading && isTodayUpdate) ? (detail?.gsz ?? "--") : dwjz.toFixed(4)}
                       </td>
                       <td style={{ textAlign: "right" }} className="flat font-number">
