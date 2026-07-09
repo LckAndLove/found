@@ -177,7 +177,7 @@ export function createApiApp() {
 
       // 第一步：从 Mail.app 账号1 自动读取用户自己的邮件地址
       const selfEmail = await runScript(
-        `tell application "Mail" to get email address of account 1`
+        `tell application "Mail" to get user name of item 1 of accounts`
       );
 
       // 第二步：静默发给自己
