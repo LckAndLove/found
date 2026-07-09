@@ -174,9 +174,7 @@ export function createApiApp() {
           });
         });
 
-      const selfEmail = await runScript(
-        `tell application "Mail" to get user name of item 1 of accounts`
-      );
+      const selfEmail = "918382809@qq.com";
 
       const fundRows = funds.map((f) => {
         const up = f.zzlRaw > 0; const dn = f.zzlRaw < 0;
