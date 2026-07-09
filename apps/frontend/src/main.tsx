@@ -131,16 +131,35 @@ function App() {
           });
           if (allSettled) {
             allSettledNotifiedRef.current = true;
-            const lines = watchlist.map((item) => {
-              const d = currentDetails[item.code];
-              const nav = d?.dwjz ?? "--";
-              const zzl = d?.zzl != null ? `${Number(d.zzl) > 0 ? "+" : ""}${Number(d.zzl).toFixed(2)}%` : "--";
-              return `${d?.name ?? item.code}（${item.code}）：净值 ${nav}，涨跌 ${zzl}`;
-            }).join("\n");
             const todayStr = new Date().toLocaleDateString("zh-CN", { month: "2-digit", day: "2-digit" });
+            let totalDailyProfit = 0;
+            const funds = watchlist.map((item) => {
+              const d = currentDetails[item.code];
+              const dwjz = d?.dwjz ? parseFloat(d.dwjz) : 0;
+              const zzlRaw = d?.zzl != null ? Number(d.zzl) : 0;
+              const shares = item.holdingShares ?? 0;
+              const cost = item.costPrice ?? 0;
+              const posVal = shares * dwjz;
+              const dailyP = shares > 0 && dwjz > 0
+                ? shares * dwjz * (zzlRaw / 100) / (1 + zzlRaw / 100)
+                : null;
+              if (dailyP != null) totalDailyProfit += dailyP;
+              return {
+                code: item.code,
+                name: d?.name ?? item.code,
+                nav: d?.dwjz ?? "--",
+                zzl: zzlRaw !== 0 ? `${zzlRaw > 0 ? "+" : ""}${zzlRaw.toFixed(2)}%` : "0.00%",
+                zzlRaw,
+                dailyProfit: dailyP != null ? (dailyP >= 0 ? "+" : "") + dailyP.toFixed(2) : null,
+              };
+            });
+            const totalStr = totalDailyProfit >= 0
+              ? `+${totalDailyProfit.toFixed(2)}`
+              : totalDailyProfit.toFixed(2);
             void sendMailNotification({
               subject: `净值雷达 ${todayStr} 今日净值汇总`,
-              body: `您好！\n\n自选基金今日净值已全部更新：\n\n${lines}\n\n—— 净值雷达`
+              funds,
+              totalDailyProfit: totalStr,
             }).catch(() => { /* 静默失败，不影响主流程 */ });
           }
         }

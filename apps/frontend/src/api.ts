@@ -161,8 +161,17 @@ export async function getMarketIndices() {
   return request<MarketIndex[]>("/api/market/indices");
 }
 
-export async function sendMailNotification(input: { subject?: string; body?: string; to?: string }) {
-  return request<{ ok: boolean }>("/api/notify/mail", {
+export type MailFundItem = {
+  code: string;
+  name: string;
+  nav: string;
+  zzl: string;
+  zzlRaw: number;
+  dailyProfit: string | null;
+};
+
+export async function sendMailNotification(input: { subject?: string; funds?: MailFundItem[]; totalDailyProfit?: string }) {
+  return request<{ ok: boolean; to: string }>("/api/notify/mail", {
     method: "POST",
     headers: { "content-type": "application/json" },
     body: JSON.stringify(input)

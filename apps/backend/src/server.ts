@@ -163,10 +163,9 @@ export function createApiApp() {
     "/api/notify/mail",
     asyncHandler(async (request, response) => {
       const subject = optionalTrimmedString(request.body?.subject, "subject") ?? `${appConfig.app.name} 今日净值汇总`;
-      const body = optionalTrimmedString(request.body?.body, "body") ?? "";
-
-      // 转义 AppleScript 字符串中的特殊字符
-      const esc = (s: string) => s.replace(/\\/g, "\\\\").replace(/"/g, '\\"').replace(/\n/g, "\\n");
+      const funds: Array<{ code: string; name: string; nav: string; zzl: string; zzlRaw: number; dailyProfit: string | null }> =
+        Array.isArray(request.body?.funds) ? (request.body.funds as Array<{ code: string; name: string; nav: string; zzl: string; zzlRaw: number; dailyProfit: string | null }>) : [];
+      const totalDailyProfit: string = optionalTrimmedString(request.body?.totalDailyProfit, "totalDailyProfit") ?? "";
 
       const runScript = (script: string) =>
         new Promise<string>((resolve, reject) => {
@@ -175,22 +174,29 @@ export function createApiApp() {
           });
         });
 
-      // 第一步：从 Mail.app 账号1 自动读取用户自己的邮件地址
       const selfEmail = await runScript(
         `tell application "Mail" to get user name of item 1 of accounts`
       );
 
-      // 第二步：静默发给自己
-      const sendScript = `tell application "Mail"
-  set m to make new outgoing message with properties {subject:"${esc(subject)}", content:"${esc(body)}", visible:false}
-  tell m
-    make new to recipient with properties {address:"${esc(selfEmail)}"}
-  end tell
-  send m
-end tell`;
+      const fundRows = funds.map((f) => {
+        const up = f.zzlRaw > 0; const dn = f.zzlRaw < 0;
+        const rC = up ? "#d93025" : dn ? "#188038" : "#5f6368";
+        const rB = up ? "#fce8e6" : dn ? "#e6f4ea" : "#f1f3f4";
+        const pC = f.dailyProfit ? (f.dailyProfit.startsWith("+") ? "#d93025" : f.dailyProfit.startsWith("-") ? "#188038" : "#5f6368") : "#5f6368";
+        return `<tr><td style="padding:12px 16px;border-bottom:1px solid #f1f3f4;"><div style="font-size:13px;font-weight:600;color:#202124;margin-bottom:2px;">${f.name}</div><div style="font-size:11px;color:#9aa0a6;font-family:monospace;">${f.code}</div></td><td style="padding:12px 16px;border-bottom:1px solid #f1f3f4;text-align:right;font-family:monospace;font-size:14px;font-weight:700;color:#202124;">${f.nav}</td><td style="padding:12px 16px;border-bottom:1px solid #f1f3f4;text-align:center;"><span style="display:inline-block;padding:3px 8px;border-radius:12px;font-size:12px;font-weight:700;background:${rB};color:${rC};">${f.zzl}</span></td><td style="padding:12px 16px;border-bottom:1px solid #f1f3f4;text-align:right;font-family:monospace;font-size:13px;font-weight:700;color:${pC};">${f.dailyProfit != null ? `&yen; ${f.dailyProfit}` : "&mdash;"}</td></tr>`;
+      }).join("");
+
+      const tC = totalDailyProfit.startsWith("+") ? "#d93025" : totalDailyProfit.startsWith("-") ? "#188038" : "#5f6368";
+      const tB = totalDailyProfit.startsWith("+") ? "#fce8e6" : totalDailyProfit.startsWith("-") ? "#e6f4ea" : "#f1f3f4";
+      const tE = totalDailyProfit.startsWith("+") ? "📈" : totalDailyProfit.startsWith("-") ? "📉" : "➖";
+      const now = new Date().toLocaleString("zh-CN", { timeZone: "Asia/Shanghai", month: "long", day: "numeric", hour: "2-digit", minute: "2-digit" });
+
+      const html = `<!DOCTYPE html><html lang="zh-CN"><head><meta charset="UTF-8"></head><body style="margin:0;padding:0;background:#f1f3f4;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;"><table width="100%" cellpadding="0" cellspacing="0" style="background:#f1f3f4;padding:32px 16px;"><tr><td align="center"><table width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%;"><tr><td style="background:linear-gradient(135deg,#1a73e8 0%,#0d47a1 100%);border-radius:16px 16px 0 0;padding:32px 40px;"><table cellpadding="0" cellspacing="0"><tr><td style="width:44px;height:44px;background:rgba(255,255,255,0.2);border-radius:10px;text-align:center;font-size:22px;vertical-align:middle;">📡</td><td style="padding-left:14px;vertical-align:middle;"><div style="color:rgba(255,255,255,0.75);font-size:11px;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;">NET VALUE RADAR</div><div style="color:#fff;font-size:22px;font-weight:800;letter-spacing:-0.03em;margin-top:3px;">净值雷达</div></td></tr></table><div style="margin-top:20px;color:rgba(255,255,255,0.8);font-size:13px;">今日净值已全部更新 &nbsp;·&nbsp; ${now}</div></td></tr><tr><td style="background:#fff;padding:28px 40px 8px;"><table width="100%" cellpadding="0" cellspacing="0" style="background:${tB};border-radius:14px;padding:0;"><tr><td style="padding:20px 24px;"><div style="font-size:11px;font-weight:700;color:#5f6368;letter-spacing:0.08em;text-transform:uppercase;margin-bottom:6px;">今日估算总收益</div><div style="font-size:30px;font-weight:800;color:${tC};letter-spacing:-0.02em;">&#165; ${totalDailyProfit || "--"}</div></td><td style="padding:20px 24px;text-align:right;font-size:40px;">${tE}</td></tr></table></td></tr><tr><td style="background:#fff;padding:20px 40px 28px;"><div style="font-size:11px;font-weight:700;color:#5f6368;letter-spacing:0.08em;text-transform:uppercase;margin-bottom:12px;">自选基金明细</div><table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;border:1px solid #f1f3f4;border-radius:12px;overflow:hidden;"><thead><tr style="background:#f8f9fa;"><th style="padding:10px 16px;text-align:left;font-size:11px;font-weight:700;color:#5f6368;letter-spacing:0.05em;">基金名称</th><th style="padding:10px 16px;text-align:right;font-size:11px;font-weight:700;color:#5f6368;">单位净值</th><th style="padding:10px 16px;text-align:center;font-size:11px;font-weight:700;color:#5f6368;">日涨跌</th><th style="padding:10px 16px;text-align:right;font-size:11px;font-weight:700;color:#5f6368;">今日收益</th></tr></thead><tbody>${fundRows}</tbody></table></td></tr><tr><td style="background:#fff;border-radius:0 0 16px 16px;padding:16px 40px 28px;border-top:1px solid #f1f3f4;text-align:center;"><div style="color:#9aa0a6;font-size:12px;line-height:1.8;">此邮件由 <strong style="color:#5f6368;">净值雷达</strong> 自动发送 &nbsp;·&nbsp; 数据来源天天基金<br>仅供参考，不构成投资建议</div></td></tr></table></td></tr></table></body></html>`;
+
+      const esc = (s: string) => s.replace(/\\/g, "\\\\").replace(/"/g, '\\"');
+      const sendScript = `tell application "Mail"\nset m to make new outgoing message with properties {subject:"${esc(subject)}", html content:"${esc(html)}", visible:false}\ntell m\nmake new to recipient with properties {address:"${esc(selfEmail)}"}\nend tell\nsend m\nend tell`;
 
       await runScript(sendScript);
-
       response.json({ ok: true, to: selfEmail });
     })
   );
