@@ -1,6 +1,6 @@
 const appConfig = require("../../config/app.config.json");
 
-const versionedProductName = `${appConfig.app.name}-${appConfig.app.version}`;
+const versionedProductName = appConfig.app.name;
 
 module.exports = {
   appId: appConfig.app.id,
