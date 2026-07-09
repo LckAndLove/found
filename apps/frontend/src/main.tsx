@@ -368,6 +368,7 @@ function App() {
       case "gsz": return d?.gsz ? parseFloat(d.gsz) : dwjz;
       case "cost": return cost;
       case "shares": return shares;
+      case "positionValue": return shares * estGsz;
       case "positionRatio": return positionRatio;
       case "holdingProfit": return holdingProfit;
       case "holdingProfitRate": return holdingProfitRate;
@@ -431,6 +432,7 @@ function App() {
                   <th className="sortable-th" style={{ textAlign: "right" }} onClick={() => handleSort("gsz")}>估算净值{sortKey==="gsz" ? (sortDir==="asc" ? " ↑" : " ↓") : " ⇅"}</th>
                   <th className="sortable-th" style={{ textAlign: "right" }} onClick={() => handleSort("cost")}>成本{sortKey==="cost" ? (sortDir==="asc" ? " ↑" : " ↓") : " ⇅"}</th>
                   <th className="sortable-th" style={{ textAlign: "right" }} onClick={() => handleSort("shares")}>持仓份额{sortKey==="shares" ? (sortDir==="asc" ? " ↑" : " ↓") : " ⇅"}</th>
+                  <th className="sortable-th" style={{ textAlign: "right" }} onClick={() => handleSort("positionValue")}>持仓金额{sortKey==="positionValue" ? (sortDir==="asc" ? " ↑" : " ↓") : " ⇅"}</th>
                   <th className="sortable-th" style={{ textAlign: "right" }} onClick={() => handleSort("positionRatio")}>仓位占比{sortKey==="positionRatio" ? (sortDir==="asc" ? " ↑" : " ↓") : " ⇅"}</th>
                   <th className="sortable-th" style={{ textAlign: "right" }} onClick={() => handleSort("holdingProfit")}>持有收益{sortKey==="holdingProfit" ? (sortDir==="asc" ? " ↑" : " ↓") : " ⇅"}</th>
                   <th className="sortable-th" style={{ textAlign: "right" }} onClick={() => handleSort("holdingProfitRate")}>持有收益率{sortKey==="holdingProfitRate" ? (sortDir==="asc" ? " ↑" : " ↓") : " ⇅"}</th>
@@ -491,6 +493,9 @@ function App() {
                       </td>
                       <td style={{ textAlign: "right" }} className="flat font-number">
                         {shares > 0 ? shares.toFixed(2) : "--"}
+                      </td>
+                      <td style={{ textAlign: "right" }} className="flat font-number">
+                        {shares > 0 ? positionValue.toFixed(2) : "--"}
                       </td>
                       <td style={{ textAlign: "right" }} className="flat font-number">
                         {shares > 0 ? positionRatio.toFixed(2) + "%" : "--"}
