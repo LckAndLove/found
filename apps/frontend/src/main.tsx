@@ -301,26 +301,35 @@ function App() {
       hasHoldings = true;
       const dwjzVal = detail?.dwjz ? parseFloat(detail.dwjz) : 0;
       const costVal = item.costPrice || 0;
+      const gszzlVal = detail?.gszzl !== null && detail?.gszzl !== undefined
+        ? (typeof detail.gszzl === "string" ? parseFloat(detail.gszzl) : detail.gszzl)
+        : null;
 
       const todayStr = getShanghaiDateString();
       const isTodayUpdate = detail?.gztime ? detail.gztime.startsWith(todayStr) : false;
+      const isQDII = detail?.name ? detail.name.includes("QDII") : false;
+      const status = getFundStatus(detail?.jzrq, detail?.gztime, isQDII);
+      const isSettled = status.className === "row-settled";
 
-      const gszzl = typeof detail?.gszzl === "number" ? detail.gszzl : null;
-      const estGsz = (todayIsTrading && isTodayUpdate)
-        ? (gszzl !== null ? dwjzVal * (1 + gszzl / 100) : (detail?.gsz ? parseFloat(detail.gsz) : dwjzVal))
-        : dwjzVal;
+      const estGsz = isSettled 
+        ? dwjzVal 
+        : ((todayIsTrading && isTodayUpdate)
+            ? (gszzlVal !== null ? dwjzVal * (1 + gszzlVal / 100) : (detail?.gsz ? parseFloat(detail.gsz) : dwjzVal))
+            : dwjzVal);
+
+      const rate = isSettled 
+        ? (detail?.zzl !== undefined && detail?.zzl !== null ? (typeof detail.zzl === "string" ? parseFloat(detail.zzl) : detail.zzl) : null)
+        : ((todayIsTrading && isTodayUpdate) ? (gszzlVal ?? detail?.zzl) : null);
+
+      const estTodayProfit = isSettled
+        ? (rate !== null ? shares * (dwjzVal - (dwjzVal / (1 + rate / 100))) : 0)
+        : ((todayIsTrading && isTodayUpdate)
+            ? (gszzlVal !== null ? shares * dwjzVal * (gszzlVal / 100) : (detail?.gsz ? shares * (parseFloat(detail.gsz) - dwjzVal) : 0))
+            : 0);
 
       totalValue += shares * estGsz;
       totalCost += shares * costVal;
-      
-      if (todayIsTrading && isTodayUpdate && detail) {
-        if (gszzl !== null) {
-          totalTodayChange += shares * dwjzVal * (gszzl / 100);
-        } else if (detail.gsz) {
-          const gszVal = parseFloat(detail.gsz);
-          totalTodayChange += shares * (gszVal - dwjzVal);
-        }
-      }
+      totalTodayChange += estTodayProfit;
     }
   });
 
