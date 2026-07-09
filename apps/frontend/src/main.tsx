@@ -453,23 +453,30 @@ function App() {
                   
                   const todayStr = getShanghaiDateString();
                   const isTodayUpdate = detail?.gztime ? detail.gztime.startsWith(todayStr) : false;
+                  const status = getFundStatus(detail?.jzrq, detail?.gztime);
+                  const isSettled = status.className === "row-settled";
 
-                  const rate = (todayIsTrading && isTodayUpdate) ? (gszzlVal ?? detail?.zzl) : null;
+                  const rate = isSettled 
+                    ? (detail?.zzl !== undefined && detail?.zzl !== null ? (typeof detail.zzl === "string" ? parseFloat(detail.zzl) : detail.zzl) : null)
+                    : ((todayIsTrading && isTodayUpdate) ? (gszzlVal ?? detail?.zzl) : null);
                   const rateClass = getRateClass(rate);
                   
-                  const estGsz = (todayIsTrading && isTodayUpdate)
-                    ? (gszzlVal !== null ? dwjz * (1 + gszzlVal / 100) : (detail?.gsz ? parseFloat(detail.gsz) : dwjz))
-                    : dwjz;
+                  const estGsz = isSettled 
+                    ? dwjz 
+                    : ((todayIsTrading && isTodayUpdate)
+                        ? (gszzlVal !== null ? dwjz * (1 + gszzlVal / 100) : (detail?.gsz ? parseFloat(detail.gsz) : dwjz))
+                        : dwjz);
                       
                   const holdingProfit = shares * (dwjz - cost);
                   const holdingProfitRate = cost > 0 ? ((dwjz - cost) / cost) * 100 : 0;
                       
-                  const estTodayProfit = (todayIsTrading && isTodayUpdate)
-                    ? (gszzlVal !== null ? shares * dwjz * (gszzlVal / 100) : (detail?.gsz ? shares * (parseFloat(detail.gsz) - dwjz) : 0))
-                    : 0;
+                  const estTodayProfit = isSettled
+                    ? (rate !== null ? shares * (dwjz - (dwjz / (1 + rate / 100))) : 0)
+                    : ((todayIsTrading && isTodayUpdate)
+                        ? (gszzlVal !== null ? shares * dwjz * (gszzlVal / 100) : (detail?.gsz ? shares * (parseFloat(detail.gsz) - dwjz) : 0))
+                        : 0);
                       
                   const updateTime = formatUpdateTime(detail?.gztime, detail?.jzrq);
-                  const status = getFundStatus(detail?.jzrq, detail?.gztime);
 
                   const positionValue = shares * estGsz;
                   const positionRatio = totalValue > 0 ? (positionValue / totalValue) * 100 : 0;

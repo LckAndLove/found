@@ -85,6 +85,9 @@ export function createFundService(dataClient: FundDataClient, watchlistRepositor
       if (latestNet?.date && (!detail.jzrq || latestNet.date >= detail.jzrq)) {
         detail.dwjz = String(latestNet.value);
         detail.jzrq = latestNet.date;
+        if (latestNet.zzl !== null) {
+          detail.zzl = latestNet.zzl;
+        }
       }
 
       if (fallback?.jzrq && (!detail.jzrq || fallback.jzrq >= detail.jzrq)) {
