@@ -161,6 +161,14 @@ export async function getMarketIndices() {
   return request<MarketIndex[]>("/api/market/indices");
 }
 
+export async function sendMailNotification(input: { subject?: string; body?: string; to?: string }) {
+  return request<{ ok: boolean }>("/api/notify/mail", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify(input)
+  });
+}
+
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const response = await fetch(`${getApiBaseUrl()}${path}`, init);
 

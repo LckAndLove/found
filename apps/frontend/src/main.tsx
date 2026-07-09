@@ -8,6 +8,7 @@ import {
   getIntraday,
   listWatchlist,
   removeWatchlistItem,
+  sendMailNotification,
   updateWatchlistItemHoldings,
   searchFunds,
   getMarketIndices,
@@ -49,6 +50,9 @@ function App() {
   useEffect(() => {
     detailsRef.current = details;
   }, [details]);
+
+  // 已全部结算通知标记（每天只发一次邮件）
+  const allSettledNotifiedRef = useRef(false);
 
   const [intradayData, setIntradayData] = useState<Record<string, IntradayResponse>>({});
   const [loadingIntraday, setLoadingIntraday] = useState<Set<string>>(new Set());
@@ -115,6 +119,31 @@ function App() {
           void loadDetail(item.code);
           void loadIntraday(item.code);
         });
+
+        // 检查是否所有有持仓的基金今日均已结算，若是则发一次汇总邮件
+        if (!allSettledNotifiedRef.current && watchlist.length > 0) {
+          const currentDetails = detailsRef.current.data;
+          const allSettled = watchlist.every((item) => {
+            const d = currentDetails[item.code];
+            if (!d) return false;
+            const isQDII = d.name ? d.name.includes("QDII") : false;
+            return getFundStatus(d.jzrq, d.gztime, isQDII).className === "row-settled";
+          });
+          if (allSettled) {
+            allSettledNotifiedRef.current = true;
+            const lines = watchlist.map((item) => {
+              const d = currentDetails[item.code];
+              const nav = d?.dwjz ?? "--";
+              const zzl = d?.zzl != null ? `${Number(d.zzl) > 0 ? "+" : ""}${Number(d.zzl).toFixed(2)}%` : "--";
+              return `${d?.name ?? item.code}（${item.code}）：净值 ${nav}，涨跌 ${zzl}`;
+            }).join("\n");
+            const todayStr = new Date().toLocaleDateString("zh-CN", { month: "2-digit", day: "2-digit" });
+            void sendMailNotification({
+              subject: `净值雷达 ${todayStr} 今日净值汇总`,
+              body: `您好！\n\n自选基金今日净值已全部更新：\n\n${lines}\n\n—— 净值雷达`
+            }).catch(() => { /* 静默失败，不影响主流程 */ });
+          }
+        }
       }
     }, 10000);
 

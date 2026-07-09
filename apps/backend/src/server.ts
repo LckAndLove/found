@@ -1,6 +1,7 @@
 import cors from "cors";
 import express from "express";
 import type { Server } from "node:http";
+import { exec } from "node:child_process";
 import { appConfig } from "./config.js";
 import { createFundService } from "./domain/funds/service.js";
 import { createFundDataClient } from "./infrastructure/fund-data/fundDataClient.js";
@@ -155,6 +156,39 @@ export function createApiApp() {
     "/api/market/indices",
     asyncHandler(async (_request, response) => {
       response.json(await fundService.getMarketIndices());
+    })
+  );
+
+  app.post(
+    "/api/notify/mail",
+    asyncHandler(async (request, response) => {
+      const subject = optionalTrimmedString(request.body?.subject, "subject") ?? `${appConfig.app.name} 今日净值汇总`;
+      const body = optionalTrimmedString(request.body?.body, "body") ?? "";
+      const to = optionalTrimmedString(request.body?.to, "to") ?? "";
+
+      // 转义 AppleScript 字符串中的特殊字符
+      const esc = (s: string) => s.replace(/\\/g, "\\\\").replace(/"/g, '\\"').replace(/\n/g, "\\n");
+
+      const script = to
+        ? `tell application "Mail"
+  set m to make new outgoing message with properties {subject:"${esc(subject)}", content:"${esc(body)}", visible:false}
+  tell m
+    make new to recipient with properties {address:"${esc(to)}"}
+  end tell
+  send m
+end tell`
+        : `tell application "Mail"
+  set m to make new outgoing message with properties {subject:"${esc(subject)}", content:"${esc(body)}", visible:true}
+  activate
+end tell`;
+
+      await new Promise<void>((resolve, reject) => {
+        exec(`osascript -e '${script.replace(/'/g, "'\"'\"'")}'`, (error) => {
+          if (error) { reject(error); } else { resolve(); }
+        });
+      });
+
+      response.json({ ok: true });
     })
   );
 
