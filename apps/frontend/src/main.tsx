@@ -438,7 +438,7 @@ function App() {
                   <th className="sortable-th" style={{ textAlign: "right" }} onClick={() => handleSort("holdingProfitRate")}>持有收益率{sortKey==="holdingProfitRate" ? (sortDir==="asc" ? " ↑" : " ↓") : " ⇅"}</th>
                   <th className="sortable-th" style={{ textAlign: "right" }} onClick={() => handleSort("rate")}>涨跌幅{sortKey==="rate" ? (sortDir==="asc" ? " ↑" : "↓") : " ⇅"}</th>
                   <th className="sortable-th" style={{ textAlign: "right" }} onClick={() => handleSort("estTodayProfit")}>估算收益{sortKey==="estTodayProfit" ? (sortDir==="asc" ? " ↑" : " ↓") : " ⇅"}</th>
-                  <th className="sortable-th" style={{ textAlign: "center" }} onClick={() => handleSort("updateTime")}>已更新{sortKey==="updateTime" ? (sortDir==="asc" ? " ↑" : " ↓") : " ⇅"}</th>
+                  <th className="sortable-th" style={{ textAlign: "center" }} onClick={() => handleSort("updateTime")}>更新时间{sortKey==="updateTime" ? (sortDir==="asc" ? " ↑" : " ↓") : " ⇅"}</th>
                 </tr>
               </thead>
               <tbody>
@@ -513,8 +513,8 @@ function App() {
                       <td style={{ textAlign: "right" }} className={`${getRateClass(estTodayProfit)} font-number`}>
                         {(todayIsTrading && isTodayUpdate) ? (estTodayProfit > 0 ? "+" : "") + estTodayProfit.toFixed(2) : "--"}
                       </td>
-                      <td style={{ textAlign: "center" }} className="flat font-number">
-                        {updateTime}
+                      <td style={{ textAlign: "center" }} className={status.className === "row-settled" ? "flat status-updated-text" : "flat font-number"}>
+                        {status.className === "row-settled" ? "已更新" : updateTime}
                       </td>
                     </tr>
                   );

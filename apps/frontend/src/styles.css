@@ -1405,4 +1405,10 @@ tr.row-pending:hover {
   opacity: 0.95;
 }
 
+.status-updated-text {
+  color: var(--color-green) !important;
+  font-weight: 600;
+}
+
+
 
