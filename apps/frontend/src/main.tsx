@@ -98,6 +98,15 @@ function App() {
     const interval = setInterval(() => {
       if (isTradingDay()) {
         watchlist.forEach((item) => {
+          const detail = details.data[item.code];
+          if (detail) {
+            const isQDII = detail.name ? detail.name.includes("QDII") : false;
+            const status = getFundStatus(detail.jzrq, detail.gztime, isQDII);
+            if (status.className === "row-settled") {
+              // 已经结算公布最新净值的基金，今日价格已盖棺定论，无需重复刷新
+              return;
+            }
+          }
           void loadDetail(item.code);
           void loadIntraday(item.code);
         });
