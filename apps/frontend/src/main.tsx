@@ -453,7 +453,8 @@ function App() {
                   
                   const todayStr = getShanghaiDateString();
                   const isTodayUpdate = detail?.gztime ? detail.gztime.startsWith(todayStr) : false;
-                  const status = getFundStatus(detail?.jzrq, detail?.gztime);
+                  const isQDII = detail?.name ? detail.name.includes("QDII") : false;
+                  const status = getFundStatus(detail?.jzrq, detail?.gztime, isQDII);
                   const isSettled = status.className === "row-settled";
 
                   const rate = isSettled 
@@ -921,10 +922,32 @@ function formatUpdateTime(gztime: string | null | undefined, jzrq: string | null
   return jzrq ? jzrq.slice(5) : "--";
 }
 
-function getFundStatus(jzrq: string | null | undefined, gztime: string | null | undefined): { text: string; className: string } {
+function getShanghaiYesterdayDateString(): string {
+  const date = new Date();
+  const day = date.getDay();
+  let daysToSubtract = 1;
+  // If today is Monday (1), previous trading day is Friday (3 days ago)
+  if (day === 1) {
+    daysToSubtract = 3;
+  } else if (day === 0) { // Sunday, subtract 2
+    daysToSubtract = 2;
+  }
+  const targetDate = new Date(date.getTime() - daysToSubtract * 24 * 60 * 60 * 1000);
+  return getShanghaiDateString(targetDate);
+}
+
+function getFundStatus(
+  jzrq: string | null | undefined, 
+  gztime: string | null | undefined,
+  isQDII: boolean
+): { text: string; className: string } {
   const todayStr = getShanghaiDateString();
+  const yesterdayStr = getShanghaiYesterdayDateString();
   
-  if (jzrq === todayStr) {
+  // QDII 基金结算日期滞后 1 交易日
+  const targetDate = isQDII ? yesterdayStr : todayStr;
+  
+  if (jzrq === targetDate) {
     return { text: "已结算", className: "row-settled" };
   }
   
