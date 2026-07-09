@@ -5,9 +5,9 @@
   --border-color: #e9ecef;
   --text-primary: #111111;
   --text-secondary: #6c757d;
-  --color-red: #d93025; /* 经典上涨红 */
+  --color-red: #d93025;
   --color-red-light: #fce8e6;
-  --color-green: #188038; /* 经典下跌绿 */
+  --color-green: #188038;
   --color-green-light: #e6f4ea;
   --color-blue: #1a73e8;
   --color-blue-light: #e8f0fe;
@@ -21,6 +21,26 @@
   font-family: var(--font-family);
   font-synthesis: none;
   text-rendering: optimizeLegibility;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg-app: #141414;
+    --bg-card: #1e1e1e;
+    --bg-hover: #2a2a2a;
+    --border-color: #333333;
+    --text-primary: #f0f0f0;
+    --text-secondary: #888888;
+    --color-red: #f28b82;
+    --color-red-light: rgba(242, 139, 130, 0.12);
+    --color-green: #81c995;
+    --color-green-light: rgba(129, 201, 149, 0.12);
+    --color-blue: #8ab4f8;
+    --color-blue-light: rgba(138, 180, 248, 0.12);
+    --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.3);
+    --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.4);
+    --shadow-lg: 0 12px 36px rgba(0, 0, 0, 0.5);
+  }
 }
 
 * {
@@ -47,11 +67,11 @@
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: rgba(0, 0, 0, 0.12);
+  background: rgba(128, 128, 128, 0.2);
   border-radius: 99px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(0, 0, 0, 0.24);
+  background: rgba(128, 128, 128, 0.4);
 }
 
 body {
@@ -114,7 +134,7 @@ button:disabled {
 
 .placeholder-cell {
   border: 1px dashed var(--border-color);
-  background: rgba(255, 255, 255, 0.4);
+  background: transparent;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1379,26 +1399,26 @@ button:disabled {
 
 /* 整行数据状态高亮规范 */
 tr.row-settled {
-  background-color: rgba(52, 168, 83, 0.05) !important; /* 极淡绿色，已结算 */
+  background-color: rgba(52, 168, 83, 0.05) !important;
 }
 tr.row-settled:hover {
   background-color: rgba(52, 168, 83, 0.1) !important;
 }
 
 tr.row-close-est {
-  background-color: rgba(251, 188, 5, 0.04) !important; /* 极淡黄色，收盘估算 */
+  background-color: rgba(251, 188, 5, 0.04) !important;
 }
 tr.row-close-est:hover {
   background-color: rgba(251, 188, 5, 0.08) !important;
 }
 
 tr.row-intraday-est {
-  background-color: #ffffff; /* 盘中估算行保持默认白底 */
+  background-color: var(--bg-card);
 }
 
 tr.row-pending {
-  background-color: #fafafa !important; /* 灰底表示尚未更新的昨收数据 */
-  opacity: 0.6; /* 整体略微淡化 */
+  background-color: var(--bg-hover) !important;
+  opacity: 0.6;
   transition: opacity 0.25s ease, background-color 0.25s ease;
 }
 tr.row-pending:hover {
