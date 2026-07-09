@@ -1377,52 +1377,32 @@ button:disabled {
   background-color: rgba(66, 133, 244, 0.4);
 }
 
-/* Data Status Indicators */
-.status-cell-wrapper {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 0.85rem;
+/* 整行数据状态高亮规范 */
+tr.row-settled {
+  background-color: rgba(52, 168, 83, 0.05) !important; /* 极淡绿色，已结算 */
+}
+tr.row-settled:hover {
+  background-color: rgba(52, 168, 83, 0.1) !important;
 }
 
-.status-indicator-dot {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  display: inline-block;
-  flex-shrink: 0;
+tr.row-close-est {
+  background-color: rgba(251, 188, 5, 0.04) !important; /* 极淡黄色，收盘估算 */
+}
+tr.row-close-est:hover {
+  background-color: rgba(251, 188, 5, 0.08) !important;
 }
 
-/* 已结算：稳重活泼的绿色 */
-.status-settled {
-  background-color: var(--color-green);
-  box-shadow: 0 0 6px var(--color-green);
+tr.row-intraday-est {
+  background-color: #ffffff; /* 盘中估算行保持默认白底 */
 }
 
-/* 收盘估算：温暖警示的黄色 */
-.status-close-est {
-  background-color: #f4b400;
-  box-shadow: 0 0 6px #f4b400;
+tr.row-pending {
+  background-color: #fafafa !important; /* 灰底表示尚未更新的昨收数据 */
+  opacity: 0.6; /* 整体略微淡化 */
+  transition: opacity 0.25s ease, background-color 0.25s ease;
+}
+tr.row-pending:hover {
+  opacity: 0.95;
 }
 
-/* 盘中估算：显眼的红色 */
-.status-intraday-est {
-  background-color: var(--color-red);
-  box-shadow: 0 0 6px var(--color-red);
-}
-
-/* 待更新 / 昨收：暗淡灰色 */
-.status-pending {
-  background-color: var(--text-muted);
-}
-
-.status-text-main {
-  font-weight: 600;
-  color: var(--text-color);
-}
-
-.status-time-sub {
-  color: var(--text-muted);
-  font-size: 0.75rem;
-}
 
