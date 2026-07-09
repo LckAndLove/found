@@ -438,7 +438,7 @@ function App() {
                   <th className="sortable-th" style={{ textAlign: "right" }} onClick={() => handleSort("holdingProfitRate")}>持有收益率{sortKey==="holdingProfitRate" ? (sortDir==="asc" ? " ↑" : " ↓") : " ⇅"}</th>
                   <th className="sortable-th" style={{ textAlign: "right" }} onClick={() => handleSort("rate")}>涨跌幅{sortKey==="rate" ? (sortDir==="asc" ? " ↑" : "↓") : " ⇅"}</th>
                   <th className="sortable-th" style={{ textAlign: "right" }} onClick={() => handleSort("estTodayProfit")}>估算收益{sortKey==="estTodayProfit" ? (sortDir==="asc" ? " ↑" : " ↓") : " ⇅"}</th>
-                  <th className="sortable-th" style={{ textAlign: "center" }} onClick={() => handleSort("updateTime")}>更新时间{sortKey==="updateTime" ? (sortDir==="asc" ? " ↑" : " ↓") : " ⇅"}</th>
+                  <th className="sortable-th" style={{ textAlign: "center" }} onClick={() => handleSort("updateTime")}>数据状态{sortKey==="updateTime" ? (sortDir==="asc" ? " ↑" : " ↓") : " ⇅"}</th>
                 </tr>
               </thead>
               <tbody>
@@ -512,8 +512,17 @@ function App() {
                       <td style={{ textAlign: "right" }} className={`${getRateClass(estTodayProfit)} font-number`}>
                         {(todayIsTrading && isTodayUpdate) ? (estTodayProfit > 0 ? "+" : "") + estTodayProfit.toFixed(2) : "--"}
                       </td>
-                      <td style={{ textAlign: "center" }} className="flat font-number">
-                        {updateTime}
+                      <td style={{ textAlign: "center" }}>
+                        {(() => {
+                          const status = getFundStatus(detail?.jzrq, detail?.gztime);
+                          return (
+                            <div className="status-cell-wrapper">
+                              <span className={`status-indicator-dot ${status.className}`} title={status.text}></span>
+                              <span className="status-text-main">{status.text}</span>
+                              <span className="status-time-sub">({updateTime})</span>
+                            </div>
+                          );
+                        })()}
                       </td>
                     </tr>
                   );
@@ -911,6 +920,27 @@ function formatUpdateTime(gztime: string | null | undefined, jzrq: string | null
   }
 
   return jzrq ? jzrq.slice(5) : "--";
+}
+
+function getFundStatus(jzrq: string | null | undefined, gztime: string | null | undefined): { text: string; className: string } {
+  const todayStr = getShanghaiDateString();
+  
+  if (jzrq === todayStr) {
+    return { text: "已结算", className: "status-settled" };
+  }
+  
+  if (gztime) {
+    const [datePart, timePart] = gztime.split(" ");
+    if (datePart === todayStr) {
+      if (timePart >= "15:00") {
+        return { text: "收盘估算", className: "status-close-est" };
+      } else {
+        return { text: "估算中", className: "status-intraday-est" };
+      }
+    }
+  }
+  
+  return { text: "昨收", className: "status-pending" };
 }
 
 function isTradingDay(date: Date = new Date()): boolean {
