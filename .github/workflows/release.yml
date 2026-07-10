@@ -65,16 +65,47 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          VERSION=$(node -e "console.log(require('./apps/desktop/src-tauri/tauri.conf.json').version)")
-          TAG_NAME="v$VERSION"
-          echo "Target Release: $TAG_NAME"
-          echo "=== Searching for signature and updater files ==="
-          # Recursively find and upload all updater packages and signature files
-          FILES=$(find apps/desktop/src-tauri/target -name "*.sig" -o -name "*.tar.gz" -o -name "*.nsis.zip" 2>/dev/null)
-          for f in $FILES; do
-            if [ -f "$f" ]; then
-              echo "Uploading file: $f"
-              gh release upload "$TAG_NAME" "$f" --clobber
-            fi
-          done
+          node -e "
+          const fs = require('fs');
+          const path = require('path');
+          const { execSync } = require('child_process');
+
+          const version = require('./apps/desktop/src-tauri/tauri.conf.json').version;
+          const tagName = 'v' + version;
+          console.log('Target Release:', tagName);
+
+          function walk(dir) {
+            let results = [];
+            if (!fs.existsSync(dir)) return results;
+            const list = fs.readdirSync(dir);
+            list.forEach(file => {
+              const filePath = path.join(dir, file);
+              const stat = fs.statSync(filePath);
+              if (stat && stat.isDirectory()) {
+                results = results.concat(walk(filePath));
+              } else {
+                results.push(filePath);
+              }
+            });
+            return results;
+          }
+
+          const targetDir = path.join('apps', 'desktop', 'src-tauri', 'target');
+          if (fs.existsSync(targetDir)) {
+            const files = walk(targetDir);
+            const matched = files.filter(f => f.endsWith('.sig') || f.endsWith('.tar.gz') || f.endsWith('.nsis.zip'));
+            console.log('Found matching files:', matched);
+            matched.forEach(f => {
+              console.log('Uploading file:', f);
+              try {
+                execSync('gh release upload \"' + tagName + '\" \"' + f + '\" --clobber', { stdio: 'inherit' });
+              } catch (err) {
+                console.error('Failed to upload:', f, err.message);
+              }
+            });
+          } else {
+            console.log('Target directory does not exist:', targetDir);
+          }
+          "
+
 
