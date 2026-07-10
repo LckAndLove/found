@@ -8,8 +8,17 @@ import { fileURLToPath } from "node:url";
 import nodemailer from "nodemailer";
 import { appConfig } from "./config.js";
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+let currentDirname = ".";
+try {
+  if (typeof __dirname !== "undefined") {
+    currentDirname = __dirname;
+  } else {
+    const metaUrl = (import.meta as any)?.url;
+    if (metaUrl) {
+      currentDirname = path.dirname(fileURLToPath(metaUrl));
+    }
+  }
+} catch (e) {}
 import { createFundService } from "./domain/funds/service.js";
 import { createFundDataClient } from "./infrastructure/fund-data/fundDataClient.js";
 import { createUpstreamHttpClient } from "./infrastructure/http/upstreamHttpClient.js";
@@ -188,8 +197,8 @@ export function createApiApp() {
       const configPaths = [
         path.join(process.cwd(), "config", "mail.config.json"),
         path.join(process.cwd(), "..", "..", "config", "mail.config.json"),
-        path.join(__dirname, "../../../config/mail.config.json"),
-        path.join(__dirname, "../../../../config/mail.config.json")
+        path.join(currentDirname, "../../../config/mail.config.json"),
+        path.join(currentDirname, "../../../../config/mail.config.json")
       ];
 
       for (const p of configPaths) {
