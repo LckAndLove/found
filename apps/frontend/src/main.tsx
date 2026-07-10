@@ -132,7 +132,9 @@ function App() {
           });
           if (allSettled) {
             allSettledNotifiedRef.current = true;
-            const todayStr = new Date().toLocaleDateString("zh-CN", { month: "2-digit", day: "2-digit" });
+            const now_time = new Date();
+            const todayStr = now_time.toLocaleDateString("zh-CN", { month: "2-digit", day: "2-digit" });
+            const timeStr = now_time.toLocaleTimeString("zh-CN", { hour12: false });
             let totalDailyProfit = 0;
             const funds = watchlist.map((item) => {
               const d = currentDetails[item.code];
@@ -161,7 +163,7 @@ function App() {
               ? `+${totalDailyProfit.toFixed(2)}`
               : totalDailyProfit.toFixed(2);
             void sendMailNotification({
-              subject: `净值雷达 ${todayStr} 今日净值汇总`,
+              subject: `净值雷达 ${todayStr} 今日净值汇总 (${timeStr})`,
               funds,
               totalDailyProfit: totalStr,
             }).catch(() => { /* 静默失败，不影响主流程 */ });
@@ -444,9 +446,11 @@ function App() {
         };
       });
     const totalStr = totalDailyProfit >= 0 ? `+${totalDailyProfit.toFixed(2)}` : totalDailyProfit.toFixed(2);
-    const todayLabel = new Date().toLocaleDateString("zh-CN", { month: "2-digit", day: "2-digit" });
+    const now_time = new Date();
+    const todayLabel = now_time.toLocaleDateString("zh-CN", { month: "2-digit", day: "2-digit" });
+    const timeLabel = now_time.toLocaleTimeString("zh-CN", { hour12: false });
     void sendMailNotification({
-      subject: `净值雷达 ${todayLabel} 当前快照`,
+      subject: `净值雷达 ${todayLabel} 当前快照 (${timeLabel})`,
       funds,
       totalDailyProfit: totalStr,
     }).catch(() => {});
