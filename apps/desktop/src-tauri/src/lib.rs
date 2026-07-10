@@ -710,13 +710,13 @@ async fn send_mail_notification(
   funds: Vec<serde_json::Value>,
   total_daily_profit: String,
 ) -> Result<serde_json::Value, String> {
-  let self_email = "918382809@qq.com";
+  let mut self_email = std::env::var("FOUND_SMTP_TO").or_else(|_| std::env::var("SMTP_TO")).unwrap_or_else(|_| "your_qq@qq.com".to_string());
   
   // 1. 读取 Google SMTP 配置
   let mut smtp_user = std::env::var("FOUND_SMTP_USER").or_else(|_| std::env::var("SMTP_USER")).unwrap_or_default();
   let mut smtp_pass = std::env::var("FOUND_SMTP_PASS").or_else(|_| std::env::var("SMTP_PASS")).unwrap_or_default();
 
-  if smtp_user.is_empty() || smtp_pass.is_empty() {
+  if smtp_user.is_empty() || smtp_pass.is_empty() || self_email == "your_qq@qq.com" {
     if let Some(config_path) = find_config_upwards("config/mail.config.json", &app_handle) {
       if let Ok(content) = fs::read_to_string(config_path) {
         if let Ok(json) = serde_json::from_str::<serde_json::Value>(&content) {
@@ -725,6 +725,9 @@ async fn send_mail_notification(
           }
           if let Some(p) = json.get("pass").and_then(|v| v.as_str()) {
             smtp_pass = p.to_string();
+          }
+          if let Some(t) = json.get("to").and_then(|v| v.as_str()) {
+            self_email = t.to_string();
           }
         }
       }
