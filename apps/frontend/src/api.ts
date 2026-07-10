@@ -1,4 +1,18 @@
-import { appConfig } from "./config";
+import { invoke } from "@tauri-apps/api/core";
+
+export class ApiRequestError extends Error {
+  readonly status: number;
+  readonly code: string;
+  readonly details?: Record<string, unknown>;
+
+  constructor(status: number, code: string, message: string, details?: Record<string, unknown>) {
+    super(message);
+    this.name = "ApiRequestError";
+    this.status = status;
+    this.code = code;
+    this.details = details;
+  }
+}
 
 export type ApiErrorBody = {
   error?: {
@@ -13,9 +27,6 @@ export type HealthResponse = {
   name: string;
   version?: string;
   service: string;
-  storage?: {
-    sqlite?: boolean;
-  };
   timestamp: string;
 };
 
@@ -67,73 +78,57 @@ export type FundWatchlistItem = {
   updatedAt: string;
 };
 
-export class ApiRequestError extends Error {
-  readonly status: number;
-  readonly code: string;
-  readonly details?: Record<string, unknown>;
+export type MarketIndex = {
+  name: string;
+  value: number;
+  change: number;
+  ratio: number;
+};
 
-  constructor(status: number, code: string, message: string, details?: Record<string, unknown>) {
-    super(message);
-    this.name = "ApiRequestError";
-    this.status = status;
-    this.code = code;
-    this.details = details;
-  }
-}
-
-export function getApiBaseUrl() {
-  return (
-    window.foundConfig?.apiBaseUrl ??
-    import.meta.env.VITE_API_BASE_URL ??
-    `http://${appConfig.api.host}:${appConfig.api.port}`
-  );
-}
+export type MailFundItem = {
+  code: string;
+  name: string;
+  nav: string;
+  zzl: string;
+  zzlRaw: number;
+  dailyProfit: string | null;
+  isSettled?: boolean;
+};
 
 export async function getHealth() {
-  return request<HealthResponse>("/api/health");
+  return invoke<HealthResponse>("get_health");
 }
 
 export async function searchFunds(keyword: string) {
-  const params = new URLSearchParams({ keyword });
-  return request<{ items: FundSearchItem[] }>(`/api/funds/search?${params.toString()}`);
+  return invoke<{ items: FundSearchItem[] }>("search_funds", { keyword });
 }
 
 export async function listWatchlist() {
-  return request<{ items: FundWatchlistItem[] }>("/api/funds/watchlist");
+  const items = await invoke<FundWatchlistItem[]>("get_watchlist");
+  return { items };
 }
 
 export async function addWatchlistItem(input: { code: string; name?: string | null }) {
-  return request<FundWatchlistItem>("/api/funds/watchlist", {
-    method: "POST",
-    headers: {
-      "content-type": "application/json"
-    },
-    body: JSON.stringify(input)
+  return invoke<FundWatchlistItem>("add_fund", {
+    code: input.code,
+    name: input.name ?? ""
   });
 }
 
 export async function removeWatchlistItem(code: string) {
-  await request<void>(`/api/funds/watchlist/${encodeURIComponent(code)}`, {
-    method: "DELETE"
-  });
+  await invoke<void>("delete_fund", { code });
 }
 
 export async function updateWatchlistItemHoldings(code: string, input: { holdingShares: number | null; costPrice: number | null }) {
-  return request<FundWatchlistItem>(`/api/funds/watchlist/${encodeURIComponent(code)}`, {
-    method: "PATCH",
-    headers: {
-      "content-type": "application/json"
-    },
-    body: JSON.stringify(input)
+  return invoke<FundWatchlistItem>("update_fund_holdings", {
+    code,
+    holdingShares: input.holdingShares,
+    costPrice: input.costPrice
   });
 }
 
 export async function getFundDetail(code: string) {
-  const params = new URLSearchParams({
-    includeHoldings: "true",
-    includeTrend: "true"
-  });
-  return request<FundDetail>(`/api/funds/${encodeURIComponent(code)}?${params.toString()}`);
+  return invoke<FundDetail>("get_fund_detail", { code });
 }
 
 export type IntradayResponse = {
@@ -147,60 +142,17 @@ export type IntradayResponse = {
 };
 
 export async function getIntraday(code: string) {
-  return request<IntradayResponse>(`/api/funds/${encodeURIComponent(code)}/intraday`);
+  return invoke<IntradayResponse>("get_fund_intraday", { code });
 }
-
-export type MarketIndex = {
-  name: string;
-  value: number;
-  change: number;
-  ratio: number;
-};
 
 export async function getMarketIndices() {
-  return request<MarketIndex[]>("/api/market/indices");
+  return invoke<MarketIndex[]>("get_market_indices");
 }
-
-export type MailFundItem = {
-  code: string;
-  name: string;
-  nav: string;
-  zzl: string;
-  zzlRaw: number;
-  dailyProfit: string | null;
-  isSettled?: boolean;
-};
 
 export async function sendMailNotification(input: { subject?: string; funds?: MailFundItem[]; totalDailyProfit?: string }) {
-  return request<{ ok: boolean; to: string; method?: string }>("/api/notify/mail", {
-    method: "POST",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify(input)
+  return invoke<{ ok: boolean; to: string; method?: string }>("send_mail_notification", {
+    subject: input.subject ?? "",
+    funds: input.funds ?? [],
+    totalDailyProfit: input.totalDailyProfit ?? ""
   });
-}
-
-async function request<T>(path: string, init?: RequestInit): Promise<T> {
-  const response = await fetch(`${getApiBaseUrl()}${path}`, init);
-
-  if (!response.ok) {
-    let body: ApiErrorBody | null = null;
-    try {
-      body = (await response.json()) as ApiErrorBody;
-    } catch {
-      body = null;
-    }
-
-    throw new ApiRequestError(
-      response.status,
-      body?.error?.code ?? "HTTP_ERROR",
-      body?.error?.message ?? `请求失败：${response.status}`,
-      body?.error?.details
-    );
-  }
-
-  if (response.status === 204) {
-    return undefined as T;
-  }
-
-  return (await response.json()) as T;
 }

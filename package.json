@@ -7,22 +7,14 @@
     "apps/*"
   ],
   "scripts": {
-    "dev": "node scripts/dev.mjs",
-    "dev:web": "node scripts/dev.mjs --web",
-    "build": "npm run build -w @found/backend && npm run build -w @found/frontend && npm run build -w @found/desktop",
-    "package:mac": "npm run build && npm run package:mac -w @found/desktop",
-    "package:win": "npm run build && npm run package:win -w @found/desktop",
-    "package:win:arm64": "npm run build && npm run package:win:arm64 -w @found/desktop",
-    "check": "npm run check -w @found/backend && npm run check -w @found/frontend && npm run check -w @found/desktop"
+    "dev": "tauri dev",
+    "build": "tauri build",
+    "check": "npm run check -w @found/frontend && npm run check -w @found/desktop"
   },
   "devDependencies": {
+    "@tauri-apps/cli": "^2.1.0",
     "@types/node": "^24.0.10",
-    "concurrently": "^9.2.0",
-    "electron": "37.10.3",
-    "electron-builder": "^26.0.12",
-    "esbuild": "^0.25.6",
-    "typescript": "^5.8.3",
-    "wait-on": "^8.0.3"
+    "typescript": "^5.8.3"
   },
   "engines": {
     "node": ">=22"
