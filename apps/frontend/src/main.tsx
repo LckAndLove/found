@@ -449,11 +449,17 @@ function App() {
     const now_time = new Date();
     const todayLabel = now_time.toLocaleDateString("zh-CN", { month: "2-digit", day: "2-digit" });
     const timeLabel = now_time.toLocaleTimeString("zh-CN", { hour12: false });
-    void sendMailNotification({
+    sendMailNotification({
       subject: `净值雷达 ${todayLabel} 当前快照 (${timeLabel})`,
       funds,
       totalDailyProfit: totalStr,
-    }).catch(() => {});
+    })
+      .then((res) => {
+        alert(`快照邮件发送成功！已通过 ${res.method === "smtp" ? "Gmail SMTP" : "本地 Mail"} 发信至 ${res.to}`);
+      })
+      .catch((err) => {
+        alert(`快照邮件发送失败：${err.message || err}`);
+      });
   };
 
   const handleSort = (key: string) => {

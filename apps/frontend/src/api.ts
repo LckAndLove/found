@@ -172,7 +172,7 @@ export type MailFundItem = {
 };
 
 export async function sendMailNotification(input: { subject?: string; funds?: MailFundItem[]; totalDailyProfit?: string }) {
-  return request<{ ok: boolean; to: string }>("/api/notify/mail", {
+  return request<{ ok: boolean; to: string; method?: string }>("/api/notify/mail", {
     method: "POST",
     headers: { "content-type": "application/json" },
     body: JSON.stringify(input)
