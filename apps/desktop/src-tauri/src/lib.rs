@@ -711,12 +711,17 @@ async fn send_mail_notification(
   total_daily_profit: String,
 ) -> Result<serde_json::Value, String> {
   let mut self_email = std::env::var("FOUND_SMTP_TO").or_else(|_| std::env::var("SMTP_TO")).unwrap_or_else(|_| "your_qq@qq.com".to_string());
+  let mut smtp_host = std::env::var("FOUND_SMTP_HOST").or_else(|_| std::env::var("SMTP_HOST")).unwrap_or_else(|_| "smtp.gmail.com".to_string());
+  let mut smtp_port = std::env::var("FOUND_SMTP_PORT").or_else(|_| std::env::var("SMTP_PORT"))
+    .ok()
+    .and_then(|s| s.parse::<u16>().ok())
+    .unwrap_or(587);
   
   // 1. 读取 Google SMTP 配置
   let mut smtp_user = std::env::var("FOUND_SMTP_USER").or_else(|_| std::env::var("SMTP_USER")).unwrap_or_default();
   let mut smtp_pass = std::env::var("FOUND_SMTP_PASS").or_else(|_| std::env::var("SMTP_PASS")).unwrap_or_default();
 
-  if smtp_user.is_empty() || smtp_pass.is_empty() || self_email == "your_qq@qq.com" {
+  if smtp_user.is_empty() || smtp_pass.is_empty() || self_email == "your_qq@qq.com" || smtp_host == "smtp.gmail.com" {
     if let Some(config_path) = find_config_upwards("config/mail.config.json", &app_handle) {
       if let Ok(content) = fs::read_to_string(config_path) {
         if let Ok(json) = serde_json::from_str::<serde_json::Value>(&content) {
@@ -728,6 +733,18 @@ async fn send_mail_notification(
           }
           if let Some(t) = json.get("to").and_then(|v| v.as_str()) {
             self_email = t.to_string();
+          }
+          if let Some(h) = json.get("host").and_then(|v| v.as_str()) {
+            smtp_host = h.to_string();
+          }
+          if let Some(p_val) = json.get("port") {
+            if let Some(p_i64) = p_val.as_i64() {
+              smtp_port = p_i64 as u16;
+            } else if let Some(p_str) = p_val.as_str() {
+              if let Ok(p_u16) = p_str.parse::<u16>() {
+                smtp_port = p_u16;
+              }
+            }
           }
         }
       }
@@ -794,8 +811,9 @@ async fn send_mail_notification(
     .map_err(|e| format!("Message building error: {}", e))?;
 
   let creds = Credentials::new(smtp_user, smtp_pass);
-  let mailer = SmtpTransport::relay("smtp.gmail.com")
+  let mailer = SmtpTransport::relay(&smtp_host)
     .map_err(|e| format!("Relay configuration error: {}", e))?
+    .port(smtp_port)
     .credentials(creds)
     .build();
 
