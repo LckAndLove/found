@@ -1,6 +1,6 @@
 {
   "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
-  "productName": "净值雷达",
+  "productName": "NetValueRadar",
   "version": "0.1.0",
   "identifier": "com.local.netvalueradar",
   "build": {
