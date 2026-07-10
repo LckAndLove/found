@@ -15,7 +15,7 @@ jobs:
       matrix:
         include:
           - platform: 'macos-latest'
-            args: '--target aarch64-apple-darwin --bundles dmg,updater'
+            args: '--target aarch64-apple-darwin'
             sig_pattern: 'bundle/macos/*.app.tar.gz.sig'
             artifact_pattern: 'bundle/dmg/*.dmg'
           - platform: 'windows-latest'
@@ -50,6 +50,7 @@ jobs:
         uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAURI_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
         with:
           tagName: v__VERSION__
@@ -59,6 +60,7 @@ jobs:
           prerelease: false
           args: ${{ matrix.args }}
           projectPath: './apps/desktop'
+
 
       - name: Upload updater assets and signatures
         shell: bash
