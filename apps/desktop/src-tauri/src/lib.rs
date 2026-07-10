@@ -139,7 +139,10 @@ fn extract_cells(row_html: &str, tag: &str) -> Vec<String> {
 // Suggestion parser helper
 fn parse_jsonp(text: &str, callback: &str) -> Option<serde_json::Value> {
   let prefix = format!("{}(", callback);
-  let trimmed = text.trim();
+  let mut trimmed = text.trim();
+  if trimmed.ends_with(';') {
+    trimmed = &trimmed[..trimmed.len() - 1].trim();
+  }
   if trimmed.starts_with(&prefix) && trimmed.ends_with(')') {
     let json_str = &trimmed[prefix.len()..trimmed.len() - 1];
     serde_json::from_str(json_str).ok()
@@ -357,32 +360,33 @@ async fn get_fund_detail(code: String) -> Result<FundDetail, String> {
     }
   }
 
-  // 2. Fetch Tencent Quote fallback if needed
-  let mut tencent_zzl = None;
+  // 2. Fetch Tencent Quote fallback and perform data fusion
+  let mut settled_zzl = None;
   let tencent_url = format!("https://qt.gtimg.cn/q=jj{}", code);
   if let Ok(res) = client.get(&tencent_url).send().await {
     if let Ok(text) = res.text().await {
       let var_prefix = format!("v_jj{}=", code);
-      if text.contains(&var_prefix) {
-        if let Some(start_idx) = text.find('"') {
-          if let Some(end_idx) = text.rfind('"') {
-            if end_idx > start_idx {
-              let raw_val = &text[start_idx+1..end_idx];
-              let parts: Vec<&str> = raw_val.split('~').collect();
-              if parts.len() >= 9 {
-                if name.is_empty() {
-                  name = parts[1].to_string();
-                }
-                if dwjz.is_none() {
-                  dwjz = Some(parts[5].to_string());
-                }
-                if jzrq.is_none() {
-                  jzrq = Some(parts[8].chars().take(10).collect());
-                }
-                if let Ok(z) = parts[7].parse::<f64>() {
-                  tencent_zzl = Some(z);
-                }
-              }
+      if let Some(pos) = text.find(&var_prefix) {
+        let content_start = pos + var_prefix.len();
+        let raw_val = text[content_start..].trim().trim_matches('"').trim_matches(';');
+        let parts: Vec<&str> = raw_val.split('~').collect();
+        if parts.len() >= 9 {
+          if name.is_empty() {
+            name = parts[1].to_string();
+          }
+          let tencent_date = parts[8].chars().take(10).collect::<String>();
+          let tencent_val = parts[5].to_string();
+          let t_zzl = parts[7].parse::<f64>().ok();
+
+          let should_update = match &jzrq {
+            Some(current_date) => tencent_date >= *current_date,
+            None => true,
+          };
+          if should_update && !tencent_val.is_empty() {
+            dwjz = Some(tencent_val);
+            jzrq = Some(tencent_date);
+            if t_zzl.is_some() {
+              settled_zzl = t_zzl;
             }
           }
         }
@@ -394,7 +398,7 @@ async fn get_fund_detail(code: String) -> Result<FundDetail, String> {
     name = format!("未知基金({})", code);
   }
 
-  // 3. Fetch latest F10 net value details (for sgzt - purchase status)
+  // 3. Fetch latest F10 net value details (for sgzt - purchase status & latest net value data fusion)
   let mut sgzt = None;
   let f10_url = format!("https://fundf10.eastmoney.com/F10DataApi.aspx?type=lsjz&code={}&page=1&per=1", code);
   if let Ok(res) = client.get(&f10_url).send().await {
@@ -407,7 +411,23 @@ async fn get_fund_detail(code: String) -> Result<FundDetail, String> {
         if rows.len() > 1 {
           let cells = extract_cells(rows[1], "td");
           if cells.len() >= 5 {
+            let f10_date = strip_html(&cells[0]);
+            let f10_val = strip_html(&cells[1]);
+            let f10_zzl_str = strip_html(&cells[3]).replace('%', "");
+            let f10_zzl = f10_zzl_str.parse::<f64>().ok();
             sgzt = Some(strip_html(&cells[4]));
+
+            let should_update = match &jzrq {
+              Some(current_date) => f10_date >= *current_date,
+              None => true,
+            };
+            if should_update && !f10_val.is_empty() {
+              dwjz = Some(f10_val);
+              jzrq = Some(f10_date);
+              if f10_zzl.is_some() {
+                settled_zzl = f10_zzl;
+              }
+            }
           }
         }
       }
@@ -536,7 +556,7 @@ async fn get_fund_detail(code: String) -> Result<FundDetail, String> {
     gztime,
     jzrq,
     gszzl,
-    zzl: tencent_zzl,
+    zzl: settled_zzl,
     no_valuation,
     holdings,
     history_trend,
