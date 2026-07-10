@@ -92,6 +92,19 @@ jobs:
           }
 
           const targetDir = '.';
+          const tauriDir = path.join('apps', 'desktop', 'src-tauri');
+          if (fs.existsSync(tauriDir)) {
+            console.log('src-tauri contents:', fs.readdirSync(tauriDir));
+            const targetDir = path.join(tauriDir, 'target');
+            if (fs.existsSync(targetDir)) {
+              console.log('target directory exists!');
+            } else {
+              console.log('target directory does NOT exist under src-tauri!');
+            }
+          } else {
+            console.log('tauriDir does NOT exist!');
+          }
+
           if (fs.existsSync(targetDir)) {
             const files = walk(targetDir);
             const matched = files.filter(f => f.endsWith('.sig') || f.endsWith('.tar.gz') || f.endsWith('.nsis.zip'));
