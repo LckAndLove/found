@@ -1,5 +1,7 @@
 import { StrictMode, useEffect, useState, useRef } from "react";
 import { createRoot } from "react-dom/client";
+import { check } from "@tauri-apps/plugin-updater";
+import { relaunch } from "@tauri-apps/plugin-process";
 import {
   addWatchlistItem,
   ApiRequestError,
@@ -96,6 +98,34 @@ function App() {
 
     return () => {
       mounted = false;
+    };
+  }, []);
+
+  // Tauri 自动更新检测
+  useEffect(() => {
+    let active = true;
+    const runCheck = async () => {
+      try {
+        const update = await check();
+        if (update && update.available && active) {
+          const yes = window.confirm(`检测到新版本 v${update.version}，是否立即下载更新并自动重启？`);
+          if (yes) {
+            setMessage("正在下载并安装更新，请稍候...");
+            await update.downloadAndInstall();
+            setMessage("更新已成功安装！软件正在重启...");
+            setTimeout(async () => {
+              await relaunch();
+            }, 1500);
+          }
+        }
+      } catch (e) {
+        console.error("更新检查失败:", e);
+      }
+    };
+    const timer = setTimeout(runCheck, 5000);
+    return () => {
+      active = false;
+      clearTimeout(timer);
     };
   }, []);
 
