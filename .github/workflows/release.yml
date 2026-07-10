@@ -79,6 +79,7 @@ jobs:
             if (!fs.existsSync(dir)) return results;
             const list = fs.readdirSync(dir);
             list.forEach(file => {
+              if (file === 'node_modules' || file === '.git') return;
               const filePath = path.join(dir, file);
               const stat = fs.statSync(filePath);
               if (stat && stat.isDirectory()) {
@@ -90,7 +91,7 @@ jobs:
             return results;
           }
 
-          const targetDir = path.join('apps', 'desktop', 'src-tauri', 'target');
+          const targetDir = '.';
           if (fs.existsSync(targetDir)) {
             const files = walk(targetDir);
             const matched = files.filter(f => f.endsWith('.sig') || f.endsWith('.tar.gz') || f.endsWith('.nsis.zip'));
@@ -107,5 +108,6 @@ jobs:
             console.log('Target directory does not exist:', targetDir);
           }
           "
+
 
 
