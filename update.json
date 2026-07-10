@@ -4,12 +4,12 @@
   "pub_date": "2026-07-10T09:50:00Z",
   "platforms": {
     "darwin-aarch64": {
-      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVSdnlidmNWclJ1cFNqbG1sdVNKcjFLclF4dHJiQkt5K3EzekdER0pkVzJoNTRUYUphcWR4b1VNL0NYTllXR1ZtQWVUNGF0T2t0ajVJejVKdThMaEZ6QzMvSjFGMmhmY2djPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzgzNjU0ODI0CWZpbGU65YeA5YC86Zu36L6+LmFwcC50YXIuZ3oKQVQyczNTT204Q1ZpU3pXT1UrakdXNEN6YTNWZ3F0UFEwR1dRem9vdnVUUXo0c1F1ZU5zZ1A4RzR3eERFU2J0Vk1PWEpFRUdac01hUE9FUEMvNEpYQ3c9PQo=",
-      "url": "https://github.com/LckAndLove/found/releases/download/v0.1.0/_aarch64.app.tar.gz"
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVSdnlidmNWclJ1cFZQTStNSGo2NjNjcFV2MEdqUk80UnBuL01pTmxuZUdldnZlQm9aYzB6L1lQNlRhQ3NFYTd1ZkxHeHJrU3F0SjRQcDU4TU00N2dST2RPRDc3Q0dWMlFVPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzgzNjYzNjk1CWZpbGU6TmV0VmFsdWVSYWRhci5hcHAudGFyLmd6Cnl0MStaRmFxWXFvSzhTZGVXY2FvZU5UWjBoS0s3RWluUTV4b0JFR051cldOL2I2eDdEbm9jQURDNXNxZ0tiU0Zic1UxcWF5bm9TTG1xNlZhWTZ5RUJ3PT0K",
+      "url": "https://github.com/LckAndLove/found/releases/download/v0.1.0/NetValueRadar_aarch64.app.tar.gz"
     },
     "windows-x86_64": {
-      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVSdnlidmNWclJ1cGRYWEZJbWxERDlKYWh3T29LdkZmb05iQTRKVWtyK2N2cHp4ZEFwMU1HRVJsYlkySVZqMlpaMW1yekgxQjN1WWdidUxDRVdBaEFOYVhaU1Jmc0JZbWdvPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzgzNjU0OTI4CWZpbGU65YeA5YC86Zu36L6+XzAuMS4wX3g2NC1zZXR1cC5leGUKYXdyY0Fkc3N2UVNzYzBrSUxpbzdvZ3pRT2tDOWxnOEpKQitEZm1FbXFCQjlPUk5GK3h4WTJpbm1VSkM1UFk3UEtGcDJjMkh4ZFk2dStqYU5HZ29hQUE9PQo=",
-      "url": "https://github.com/LckAndLove/found/releases/download/v0.1.0/_0.1.0_x64-setup.exe"
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVSdnlidmNWclJ1cFJiSnY1eWZMK1I1dkZ2ZXV6Z2toVUZUOWJPNGJSQjBQY295RDMyZ0lUcEk2aW9oNkxreldnMi9BUmkvRXkrNytzUVp6cnBqN2tLaThoU0V5azdocFFjPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzgzNjYzNzQ1CWZpbGU6TmV0VmFsdWVSYWRhcl8wLjEuMF94NjQtc2V0dXAuZXhlCkNGZWpMQk5tc2grMEpleEhQSDdHbTUxYnMwamFaV1RtNkRvNXRzRElRM1Q2UUxvMGtHbGFOcllhY2NkOXJPNEVVdkdNNFpDVVNBeGpqRkp6Y0JDYkNBPT0K",
+      "url": "https://github.com/LckAndLove/found/releases/download/v0.1.0/NetValueRadar_0.1.0_x64-setup.exe"
     }
   }
 }
