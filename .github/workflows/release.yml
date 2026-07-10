@@ -74,30 +74,40 @@ jobs:
           const tagName = 'v' + version;
           console.log('Target Release:', tagName);
 
-          const searchDirs = [
-            path.join('apps', 'desktop', 'src-tauri', 'target', 'aarch64-apple-darwin', 'release', 'bundle', 'macos'),
-            path.join('apps', 'desktop', 'src-tauri', 'target', 'x86_64-pc-windows-msvc', 'release', 'bundle', 'nsis')
-          ];
+          function walk(dir) {
+            let results = [];
+            if (!fs.existsSync(dir)) return results;
+            const list = fs.readdirSync(dir);
+            list.forEach(file => {
+              const filePath = path.join(dir, file);
+              const stat = fs.statSync(filePath);
+              if (stat && stat.isDirectory()) {
+                results = results.concat(walk(filePath));
+              } else {
+                results.push(filePath);
+              }
+            });
+            return results;
+          }
 
-          searchDirs.forEach(dir => {
-            console.log('Checking directory:', dir);
-            if (fs.existsSync(dir)) {
-              const files = fs.readdirSync(dir);
-              console.log('Directory contents:', files);
-              const matched = files.filter(f => f.endsWith('.sig') || f.endsWith('.tar.gz') || f.endsWith('.zip'));
-              matched.forEach(file => {
-                const fullPath = path.join(dir, file);
-                console.log('Uploading file:', fullPath);
-                try {
-                  execSync('gh release upload \"' + tagName + '\" \"' + fullPath + '\" --clobber', { stdio: 'inherit' });
-                } catch (err) {
-                  console.error('Failed to upload:', fullPath, err.message);
-                }
-              });
-            } else {
-              console.log('Directory does not exist:', dir);
-            }
-          });
+          const targetDir = path.join('apps', 'desktop', 'src-tauri', 'target');
+          if (fs.existsSync(targetDir)) {
+            const files = walk(targetDir);
+            const bundleFiles = files.filter(f => f.includes('bundle'));
+            console.log('All bundle files found:', bundleFiles);
+            const matched = bundleFiles.filter(f => f.endsWith('.sig') || f.endsWith('.tar.gz') || f.endsWith('.zip'));
+            console.log('Matched updater files:', matched);
+            matched.forEach(f => {
+              console.log('Uploading file:', f);
+              try {
+                execSync('gh release upload \"' + tagName + '\" \"' + f + '\" --clobber', { stdio: 'inherit' });
+              } catch (err) {
+                console.error('Failed to upload:', f, err.message);
+              }
+            });
+          } else {
+            console.log('Target directory does not exist:', targetDir);
+          }
           "
 
 
