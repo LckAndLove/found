@@ -2,7 +2,14 @@ import cors from "cors";
 import express from "express";
 import type { Server } from "node:http";
 import { exec } from "node:child_process";
+import fs from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+import nodemailer from "nodemailer";
 import { appConfig } from "./config.js";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 import { createFundService } from "./domain/funds/service.js";
 import { createFundDataClient } from "./infrastructure/fund-data/fundDataClient.js";
 import { createUpstreamHttpClient } from "./infrastructure/http/upstreamHttpClient.js";
@@ -176,6 +183,26 @@ export function createApiApp() {
 
       const selfEmail = "918382809@qq.com";
 
+      // 尝试查找并加载 Google SMTP 配置
+      let mailConfig: { user: string; pass: string } | null = null;
+      const configPaths = [
+        path.join(process.cwd(), "config", "mail.config.json"),
+        path.join(process.cwd(), "..", "..", "config", "mail.config.json"),
+        path.join(__dirname, "../../../config/mail.config.json"),
+        path.join(__dirname, "../../../../config/mail.config.json")
+      ];
+
+      for (const p of configPaths) {
+        if (fs.existsSync(p)) {
+          try {
+            mailConfig = JSON.parse(fs.readFileSync(p, "utf-8"));
+            break;
+          } catch (e) {
+            // ignore
+          }
+        }
+      }
+
       const fundRows = funds.map((f) => {
         const up = f.zzlRaw > 0; const dn = f.zzlRaw < 0;
         const rC = up ? "#d93025" : dn ? "#188038" : "#5f6368";
@@ -194,11 +221,35 @@ export function createApiApp() {
 
       const html = `<!DOCTYPE html><html lang="zh-CN"><head><meta charset="UTF-8"></head><body style="margin:0;padding:0;background:#f5f7f8;color:#202124;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;"><table width="100%" cellpadding="0" cellspacing="0" style="background:#f5f7f8;padding:32px 16px;"><tr><td align="center"><table width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%;"><tr><td style="background:#ffffff;border-radius:16px 16px 0 0;padding:32px 40px;border-bottom:1px solid #e9ecef;border-top:4px solid #1a73e8;"><div style="color:#5f6368;font-size:11px;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;">NET VALUE RADAR</div><div style="color:#202124;font-size:22px;font-weight:800;letter-spacing:-0.03em;margin-top:6px;">净值雷达</div><div style="margin-top:16px;color:#5f6368;font-size:13px;">今日净值已全部更新 &nbsp;·&nbsp; ${now}</div></td></tr><tr><td style="background:#ffffff;padding:28px 40px 8px;"><table width="100%" cellpadding="0" cellspacing="0" style="background:${tB};border-radius:14px;padding:0;border:1px solid ${tBorder};"><tr><td style="padding:20px 24px;"><div style="font-size:11px;font-weight:700;color:#5f6368;letter-spacing:0.08em;text-transform:uppercase;margin-bottom:6px;">今日估算总收益</div><div style="font-size:30px;font-weight:800;color:${tC};letter-spacing:-0.02em;">&#165; ${totalDailyProfit || "--"}</div></td></tr></table></td></tr><tr><td style="background:#ffffff;padding:20px 40px 28px;"><div style="font-size:11px;font-weight:700;color:#5f6368;letter-spacing:0.08em;text-transform:uppercase;margin-bottom:12px;">自选基金明细</div><table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;border:1px solid #e9ecef;border-radius:12px;overflow:hidden;"><thead><tr style="background:#f8f9fa;"><th style="padding:10px 16px;text-align:left;font-size:11px;font-weight:700;color:#5f6368;letter-spacing:0.05em;border-bottom:1px solid #e9ecef;">基金名称</th><th style="padding:10px 16px;text-align:center;font-size:11px;font-weight:700;color:#5f6368;border-bottom:1px solid #e9ecef;">涨跌幅</th><th style="padding:10px 16px;text-align:right;font-size:11px;font-weight:700;color:#5f6368;border-bottom:1px solid #e9ecef;">估算收益</th></tr></thead><tbody>${fundRows}</tbody></table></td></tr><tr><td style="background:#ffffff;border-radius:0 0 16px 16px;padding:16px 40px 28px;border-top:1px solid #e9ecef;text-align:center;"><div style="color:#9aa0a6;font-size:12px;line-height:1.8;">此邮件由 <strong style="color:#5f6368;">净值雷达</strong> 自动发送 &nbsp;·&nbsp; 数据来源天天基金<br>仅供参考，不构成投资建议</div></td></tr></table></td></tr></table></body></html>`;
 
+      if (mailConfig && mailConfig.user && mailConfig.pass) {
+        try {
+          const transporter = nodemailer.createTransport({
+            service: "gmail",
+            auth: {
+              user: mailConfig.user,
+              pass: mailConfig.pass
+            }
+          });
+          await transporter.sendMail({
+            from: `"净值雷达" <${mailConfig.user}>`,
+            to: selfEmail,
+            subject: subject,
+            html: html
+          });
+          response.json({ ok: true, to: selfEmail, method: "smtp" });
+          return;
+        } catch (smtpError) {
+          console.error("SMTP send failed, falling back to Mail.app:", smtpError);
+        }
+      }
+
+      // Fallback to AppleScript Mail.app
+
       const esc = (s: string) => s.replace(/\\/g, "\\\\").replace(/"/g, '\\"');
       const sendScript = `tell application "Mail"\nset m to make new outgoing message with properties {subject:"${esc(subject)}", html content:"${esc(html)}", visible:false}\nset message signature of m to missing value\ntell m\nmake new to recipient with properties {address:"${esc(selfEmail)}"}\nend tell\nsend m\nend tell\nlaunch application "Mail"`;
 
       await runScript(sendScript);
-      response.json({ ok: true, to: selfEmail });
+      response.json({ ok: true, to: selfEmail, method: "mail.app" });
     })
   );
 
