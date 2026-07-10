@@ -55,6 +55,8 @@ pub struct WatchlistItem {
 
 fn get_db_path(app_handle: &tauri::AppHandle) -> Result<PathBuf, String> {
   let mut path = app_handle.path().app_data_dir().map_err(|e| e.to_string())?;
+  path.pop(); // Remove bundle identifier com.local.netvalueradar
+  path.push("净值雷达");
   path.push("data");
   path.push("found.sqlite");
   Ok(path)
