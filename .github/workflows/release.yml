@@ -60,29 +60,21 @@ jobs:
           args: ${{ matrix.args }}
           projectPath: './apps/desktop'
 
-      - name: Upload .sig file to release (macOS)
-        if: matrix.platform == 'macos-latest'
+      - name: Upload updater assets and signatures
         shell: bash
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          SIG_FILE=$(find apps/desktop/src-tauri/target/aarch64-apple-darwin/release/bundle/macos -name "*.app.tar.gz.sig" 2>/dev/null | head -1)
-          TAR_FILE=$(find apps/desktop/src-tauri/target/aarch64-apple-darwin/release/bundle/macos -name "*.app.tar.gz" 2>/dev/null | head -1)
-          if [ -n "$SIG_FILE" ]; then
-            echo "Uploading $SIG_FILE"
-            gh release upload v0.1.0 "$SIG_FILE" "$TAR_FILE" --clobber
-          fi
+          VERSION=$(node -e "console.log(require('./apps/desktop/src-tauri/tauri.conf.json').version)")
+          TAG_NAME="v$VERSION"
+          echo "Target Release: $TAG_NAME"
+          echo "=== Searching for signature and updater files ==="
+          # Recursively find and upload all updater packages and signature files
+          FILES=$(find apps/desktop/src-tauri/target -name "*.sig" -o -name "*.tar.gz" -o -name "*.nsis.zip" 2>/dev/null)
+          for f in $FILES; do
+            if [ -f "$f" ]; then
+              echo "Uploading file: $f"
+              gh release upload "$TAG_NAME" "$f" --clobber
+            fi
+          done
 
-      - name: Upload .sig file to release (Windows)
-        if: matrix.platform == 'windows-latest'
-        shell: bash
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          SIG_FILE=$(find apps/desktop/src-tauri/target/x86_64-pc-windows-msvc/release/bundle/nsis -name "*-setup.exe.sig" 2>/dev/null | head -1)
-          NSIS_FILE=$(find apps/desktop/src-tauri/target/x86_64-pc-windows-msvc/release/bundle/nsis -name "*-setup.nsis.zip" 2>/dev/null | head -1)
-          NSIS_SIG_FILE=$(find apps/desktop/src-tauri/target/x86_64-pc-windows-msvc/release/bundle/nsis -name "*-setup.nsis.zip.sig" 2>/dev/null | head -1)
-          if [ -n "$SIG_FILE" ]; then
-            echo "Uploading $SIG_FILE"
-            gh release upload v0.1.0 "$SIG_FILE" "$NSIS_FILE" "$NSIS_SIG_FILE" --clobber
-          fi
