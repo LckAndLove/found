@@ -1,0 +1,15 @@
+{
+  "version": "0.1.0",
+  "notes": "自用首个 Tauri 2.0 版本，包体积下降 95%，内存下降 90%！",
+  "pub_date": "2026-07-10T09:50:00Z",
+  "platforms": {
+    "darwin-aarch64": {
+      "signature": "",
+      "url": "https://github.com/LckAndLove/found/releases/download/v0.1.0/净值雷达_0.1.0_aarch64.dmg"
+    },
+    "windows-x86_64": {
+      "signature": "",
+      "url": "https://github.com/LckAndLove/found/releases/download/v0.1.0/净值雷达_0.1.0_x64-setup.nsis.zip"
+    }
+  }
+}
