@@ -46,7 +46,7 @@
       "endpoints": [
         "https://raw.githubusercontent.com/LckAndLove/found/main/update.json"
       ],
-      "pubkey": "untrusted comment: minisign public key: A56EB456DCBBC96F\nRWRvybvcVrRupdAhC9c11jfqZ8TB63CL5IUu8anQuTYN39MV9AeKWT7t"
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IEE1NkVCNDU2RENCQkM5NkYKUldSdnlidmNWclJ1cGRBaEM5YzExamZxWjhUQjYzQ0w1SVV1OGFuUXVUWU4zOU1WOUFlS1dUN3QK"
     }
   }
 }
